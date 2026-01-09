@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/blueberry-adii/tickr/internal/api"
@@ -12,7 +13,7 @@ var ctx = context.Background()
 func main() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/v1/health", api.Health)
+	mux.Handle("/api/v1/health/", api.Logging(api.Health))
 
-	http.ListenAndServe(":8080", mux)
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }
