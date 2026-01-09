@@ -41,8 +41,8 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		JobType string `json:"jobtype"`
-		Payload string `json:"payload"`
+		JobType string          `json:"jobtype"`
+		Payload json.RawMessage `json:"payload"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

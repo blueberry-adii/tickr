@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/blueberry-adii/tickr/internal/jobs"
 	"github.com/blueberry-adii/tickr/internal/queue"
 )
 
@@ -32,10 +31,7 @@ func (w *Worker) Run(ctx context.Context) {
 		if job == nil {
 			continue
 		}
-		w.processJob(job)
+		exec := Executor{worker: w}
+		exec.ExecuteJob(job)
 	}
-}
-
-func (w *Worker) processJob(job *jobs.Job) {
-	log.Printf("%v processing job %s", w.ID, job.ID)
 }

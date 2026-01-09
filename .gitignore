@@ -27,6 +27,7 @@ go.work.sum
 # env file
 .env
 _.md
+roadmap.md
 
 # Editor/IDE
 # .idea/
