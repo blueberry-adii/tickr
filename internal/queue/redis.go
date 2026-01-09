@@ -24,5 +24,17 @@ func (q *RedisQueue) Enqueue(ctx context.Context, job *jobs.Job) error {
 		return err
 	}
 
-	return q.client.LPush(ctx, "tickr:queue", data).Err()
+	queueKey := q.getQueueKey(job.Priority)
+
+	return q.client.LPush(ctx, queueKey, data).Err()
+}
+
+func (q *RedisQueue) getQueueKey(priority int) string {
+	if priority >= 8 {
+		return "tickr:queue:high"
+	} else if priority >= 5 {
+		return "tickr:queue:medium"
+	} else {
+		return "ticker:queue:low"
+	}
 }
