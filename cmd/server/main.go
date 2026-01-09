@@ -16,8 +16,11 @@ func main() {
 	mux := http.NewServeMux()
 	redisQueue := queue.NewRedisQueue("localhost:6379")
 	handler := api.NewHandler(redisQueue)
-	worker := worker.NewWorker(redisQueue)
-	go worker.Run(ctx)
+
+	for i := 0; i < 5; i++ {
+		worker := worker.NewWorker(i, redisQueue)
+		go worker.Run(ctx)
+	}
 
 	mux.Handle("/api/v1/health/", api.Logging(handler.Health))
 	mux.Handle("/api/v1/jobs/", api.Logging(handler.SubmitJob))

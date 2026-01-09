@@ -7,17 +7,16 @@ import (
 
 	"github.com/blueberry-adii/tickr/internal/jobs"
 	"github.com/blueberry-adii/tickr/internal/queue"
-	"github.com/google/uuid"
 )
 
 type Worker struct {
-	ID    string
+	ID    int
 	Queue *queue.RedisQueue
 }
 
-func NewWorker(q *queue.RedisQueue) *Worker {
+func NewWorker(id int, q *queue.RedisQueue) *Worker {
 	return &Worker{
-		ID:    uuid.NewString(),
+		ID:    id,
 		Queue: q,
 	}
 }
