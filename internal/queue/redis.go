@@ -25,29 +25,11 @@ func (q *RedisQueue) Enqueue(ctx context.Context, job *jobs.Job) error {
 		return err
 	}
 
-	queueKey := q.getQueueKey(job.Priority)
-
-	return q.client.LPush(ctx, queueKey, data).Err()
-}
-
-func (q *RedisQueue) getQueueKey(priority int) string {
-	if priority >= 8 {
-		return "tickr:queue:high"
-	} else if priority >= 5 {
-		return "tickr:queue:medium"
-	} else {
-		return "ticker:queue:low"
-	}
+	return q.client.LPush(ctx, "tickr:queue", data).Err()
 }
 
 func (q *RedisQueue) Dequeue(ctx context.Context) (*jobs.Job, error) {
-	queues := []string{
-		"tickr:queue:high",
-		"tickr:queue:medium",
-		"ticker:queue:low",
-	}
-
-	res, err := q.client.BRPop(ctx, time.Second*5, queues...).Result()
+	res, err := q.client.BRPop(ctx, time.Second*5, "tickr:queue").Result()
 
 	if err == redis.Nil {
 		return nil, nil
