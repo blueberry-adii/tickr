@@ -18,7 +18,7 @@ func main() {
 	handler := api.NewHandler(redisQueue)
 
 	for i := 0; i < 5; i++ {
-		worker := worker.NewWorker(i, redisQueue)
+		worker := worker.NewWorker(i+1, redisQueue)
 		go worker.Run(ctx)
 	}
 

@@ -41,5 +41,18 @@ func (e *Executor) handleEmail(job *jobs.Job) {
 }
 
 func (e *Executor) handleReport(job *jobs.Job) {
+	var report struct {
+		Title string `json:"title"`
+		Body  string `json:"body"`
+		Time  int    `json:"time"`
+	}
 
+	if err := json.Unmarshal([]byte(job.Payload), &report); err != nil {
+		log.Printf("Invalid Report Format: %v", err)
+		return
+	}
+
+	log.Printf("Scheduled report for %d seconds", report.Time)
+	time.Sleep(time.Second * time.Duration(report.Time))
+	log.Printf("Title: %s | Body: %s", report.Title, report.Body)
 }
