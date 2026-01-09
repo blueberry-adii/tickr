@@ -33,10 +33,10 @@ func (w *Worker) Run(ctx context.Context) {
 		if job == nil {
 			continue
 		}
-		processJob(job)
+		w.processJob(job)
 	}
 }
 
-func processJob(job *jobs.Job) {
-	log.Printf("Processing job %s", job.ID)
+func (w *Worker) processJob(job *jobs.Job) {
+	log.Printf("%v processing job %s", w.ID, job.ID)
 }
