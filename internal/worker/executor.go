@@ -24,7 +24,6 @@ func (e *Executor) ExecuteJob(job *jobs.Job) {
 }
 
 func (e *Executor) handleEmail(job *jobs.Job) {
-	log.Printf("worker %v took job %v", e.worker.ID, job.ID)
 	var email struct {
 		To   string `json:"to"`
 		From string `json:"from"`

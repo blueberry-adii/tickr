@@ -31,6 +31,7 @@ func (w *Worker) Run(ctx context.Context) {
 		if job == nil {
 			continue
 		}
+		log.Printf("worker %v took job %v", w.ID, job.ID)
 		exec := Executor{worker: w}
 		exec.ExecuteJob(job)
 	}
