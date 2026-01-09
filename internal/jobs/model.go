@@ -1,14 +1,13 @@
 package jobs
 
 import (
-	"encoding/json"
 	"time"
 )
 
 type Job struct {
-	ID        string
-	JobType   string
-	Payload   json.RawMessage
-	Status    string
-	CreatedAt time.Time
+	ID        string    `json:"id"`
+	JobType   string    `json:"jobtype"`
+	Payload   string    `json:"payload"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
 }
