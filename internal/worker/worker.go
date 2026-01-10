@@ -21,12 +21,14 @@ func NewWorker(id int, s *scheduler.Scheduler) *Worker {
 
 func (w *Worker) Run(ctx context.Context) {
 	for {
-		log.Printf("Worker %v woke up", w.ID)
+		log.Printf("worker %v idle", w.ID)
 		select {
 		case <-ctx.Done():
+			log.Printf("worker %d shutting down", w.ID)
 			return
 		case job, ok := <-w.Scheduler.JobCh:
 			if !ok {
+				log.Printf("worker %d shutting down", w.ID)
 				return
 			}
 			log.Printf("worker %v took job %v", w.ID, job.ID)

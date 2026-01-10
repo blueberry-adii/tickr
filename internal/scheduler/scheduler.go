@@ -30,7 +30,7 @@ func (s *Scheduler) Run(ctx context.Context) {
 	defer close(s.wqCh)
 	go s.PopReadyQueue(ctx)
 	for {
-		log.Printf("Scheduler Woke Up")
+		log.Printf("Scheduler Idle")
 		nextExec, err := s.nextExecutionTime(ctx)
 
 		var timer <-chan time.Time
@@ -44,16 +44,17 @@ func (s *Scheduler) Run(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
+			log.Printf("Killing Scheduler")
 			return
 		case <-s.wqCh:
+			log.Printf("New Job in WQ")
 			continue
 		case <-timer:
 			jobs, _ := s.PopWaitingQueue(ctx)
 			for _, job := range jobs {
+				log.Printf("moving job %v from waiting to ready queue", job.ID)
 				s.PushReadyQueue(ctx, job)
 			}
-		case <-s.JobCh:
-			go s.PopReadyQueue(ctx)
 		}
 	}
 }
@@ -82,23 +83,40 @@ func (s *Scheduler) PushReadyQueue(ctx context.Context, job *jobs.Job) error {
 	return s.redis.client.LPush(ctx, "tickr:queue:ready", data).Err()
 }
 
-func (s *Scheduler) PopReadyQueue(ctx context.Context) (*jobs.Job, error) {
-	res, err := s.redis.client.BRPop(ctx, 0, "tickr:queue:ready").Result()
+func (s *Scheduler) PopReadyQueue(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 
-	if err == redis.Nil {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
+		res, err := s.redis.client.BRPop(ctx, 0, "tickr:queue:ready").Result()
 
-	var job *jobs.Job = new(jobs.Job)
-	if err := json.Unmarshal([]byte(res[1]), job); err != nil {
-		return nil, err
-	}
+		if err == redis.Nil {
+			continue
+		}
+		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			log.Printf("Error popping from ready queue: %v", err)
+			time.Sleep(time.Second)
+			continue
+		}
 
-	s.JobCh <- job
-	return job, nil
+		var job *jobs.Job = new(jobs.Job)
+		if err := json.Unmarshal([]byte(res[1]), job); err != nil {
+			log.Printf("Error unmarshalling job: %v", err)
+			continue
+		}
+
+		select {
+		case s.JobCh <- job:
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func (s *Scheduler) PushWaitingQueue(ctx context.Context, job *jobs.Job, delay int) error {
