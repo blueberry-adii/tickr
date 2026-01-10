@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/blueberry-adii/tickr/internal/jobs"
-	"github.com/blueberry-adii/tickr/internal/queue"
+	"github.com/blueberry-adii/tickr/internal/scheduler"
 	"github.com/google/uuid"
 )
 
@@ -18,12 +18,12 @@ type response struct {
 }
 
 type Handler struct {
-	queue *queue.RedisQueue
+	scheduler *scheduler.Scheduler
 }
 
-func NewHandler(q *queue.RedisQueue) *Handler {
+func NewHandler(s *scheduler.Scheduler) *Handler {
 	return &Handler{
-		queue: q,
+		scheduler: s,
 	}
 }
 
@@ -58,7 +58,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: time.Now(),
 	}
 
-	h.queue.PushReadyQueue(r.Context(), &job)
+	h.scheduler.PushReadyQueue(r.Context(), &job)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response{

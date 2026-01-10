@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/blueberry-adii/tickr/internal/api"
-	"github.com/blueberry-adii/tickr/internal/queue"
+	"github.com/blueberry-adii/tickr/internal/scheduler"
 	"github.com/blueberry-adii/tickr/internal/worker"
 )
 
@@ -14,11 +14,12 @@ var ctx = context.Background()
 
 func main() {
 	mux := http.NewServeMux()
-	redisQueue := queue.NewRedisQueue("localhost:6379")
-	handler := api.NewHandler(redisQueue)
+	redis := scheduler.NewRedis("localhost:6379")
+	scheduler := scheduler.NewScheduler(redis)
+	handler := api.NewHandler(scheduler)
 
 	for i := 0; i < 5; i++ {
-		worker := worker.NewWorker(i+1, redisQueue)
+		worker := worker.NewWorker(i+1, scheduler)
 		go worker.Run(ctx)
 	}
 

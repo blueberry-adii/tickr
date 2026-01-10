@@ -1,4 +1,4 @@
-package queue
+package scheduler
 
 import (
 	"context"
@@ -10,27 +10,27 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-type RedisQueue struct {
-	client *redis.Client
+type Scheduler struct {
+	redis *Redis
 }
 
-func NewRedisQueue(addr string) *RedisQueue {
-	return &RedisQueue{
-		client: redis.NewClient(&redis.Options{Addr: addr}),
+func NewScheduler(r *Redis) *Scheduler {
+	return &Scheduler{
+		redis: r,
 	}
 }
 
-func (q *RedisQueue) PushReadyQueue(ctx context.Context, job *jobs.Job) error {
+func (s *Scheduler) PushReadyQueue(ctx context.Context, job *jobs.Job) error {
 	data, err := json.Marshal(job)
 	if err != nil {
 		return err
 	}
 
-	return q.client.LPush(ctx, "tickr:queue:ready", data).Err()
+	return s.redis.client.LPush(ctx, "tickr:queue:ready", data).Err()
 }
 
-func (q *RedisQueue) PopReadyQueue(ctx context.Context) (*jobs.Job, error) {
-	res, err := q.client.BRPop(ctx, time.Second*5, "tickr:queue:ready").Result()
+func (s *Scheduler) PopReadyQueue(ctx context.Context) (*jobs.Job, error) {
+	res, err := s.redis.client.BRPop(ctx, time.Second*5, "tickr:queue:ready").Result()
 
 	if err == redis.Nil {
 		return nil, nil
@@ -46,7 +46,7 @@ func (q *RedisQueue) PopReadyQueue(ctx context.Context) (*jobs.Job, error) {
 	return &job, nil
 }
 
-func (q *RedisQueue) PushWaitingQueue(ctx context.Context, job *jobs.Job, delay int) error {
+func (s *Scheduler) PushWaitingQueue(ctx context.Context, job *jobs.Job, delay int) error {
 	data, err := json.Marshal(job)
 	if err != nil {
 		return err
@@ -54,16 +54,16 @@ func (q *RedisQueue) PushWaitingQueue(ctx context.Context, job *jobs.Job, delay 
 
 	executeAt := time.Now().Add(time.Second * time.Duration(delay)).Unix()
 
-	return q.client.ZAdd(ctx, "tickr:queue:waiting", &redis.Z{
+	return s.redis.client.ZAdd(ctx, "tickr:queue:waiting", &redis.Z{
 		Score:  float64(executeAt),
 		Member: data,
 	}).Err()
 }
 
-func (q *RedisQueue) PopWaitingQueue(ctx context.Context) ([]*jobs.Job, error) {
+func (s *Scheduler) PopWaitingQueue(ctx context.Context) ([]*jobs.Job, error) {
 	now := time.Now().Unix()
 
-	res, err := q.client.ZRangeByScore(ctx, "tickr:queue:waiting", &redis.ZRangeBy{
+	res, err := s.redis.client.ZRangeByScore(ctx, "tickr:queue:waiting", &redis.ZRangeBy{
 		Min: "-inf",
 		Max: strconv.FormatInt(now, 10),
 	}).Result()
@@ -82,7 +82,7 @@ func (q *RedisQueue) PopWaitingQueue(ctx context.Context) ([]*jobs.Job, error) {
 
 		readyJobs = append(readyJobs, job)
 
-		q.client.ZRem(ctx, "tickr:queue:waiting", item)
+		s.redis.client.ZRem(ctx, "tickr:queue:waiting", item)
 	}
 
 	return readyJobs, nil

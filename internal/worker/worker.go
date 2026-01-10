@@ -5,24 +5,24 @@ import (
 	"log"
 	"time"
 
-	"github.com/blueberry-adii/tickr/internal/queue"
+	"github.com/blueberry-adii/tickr/internal/scheduler"
 )
 
 type Worker struct {
-	ID    int
-	Queue *queue.RedisQueue
+	ID        int
+	Scheduler *scheduler.Scheduler
 }
 
-func NewWorker(id int, q *queue.RedisQueue) *Worker {
+func NewWorker(id int, s *scheduler.Scheduler) *Worker {
 	return &Worker{
-		ID:    id,
-		Queue: q,
+		ID:        id,
+		Scheduler: s,
 	}
 }
 
 func (w *Worker) Run(ctx context.Context) {
 	for {
-		job, err := w.Queue.PopReadyQueue(ctx)
+		job, err := w.Scheduler.PopReadyQueue(ctx)
 		if err != nil {
 			log.Printf("Couldnt execute job!!!: %v", err)
 			time.Sleep(5 * time.Second)
