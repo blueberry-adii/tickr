@@ -20,6 +20,20 @@ func NewScheduler(r *Redis) *Scheduler {
 	}
 }
 
+func (s *Scheduler) Run(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+
+		jobs, _ := s.PopWaitingQueue(ctx)
+
+		for _, job := range jobs {
+			s.PushReadyQueue(ctx, job)
+		}
+	}
+}
+
 func (s *Scheduler) PushReadyQueue(ctx context.Context, job *jobs.Job) error {
 	data, err := json.Marshal(job)
 	if err != nil {
