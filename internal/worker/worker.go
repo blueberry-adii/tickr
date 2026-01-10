@@ -26,18 +26,18 @@ func (w *Worker) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
+			job, err := w.Scheduler.PopReadyQueue(ctx)
+			if err != nil {
+				log.Printf("Couldnt execute job!!!: %v", err)
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			if job == nil {
+				continue
+			}
+			log.Printf("worker %v took job %v", w.ID, job.ID)
+			exec := Executor{worker: w}
+			exec.ExecuteJob(job)
 		}
-		job, err := w.Scheduler.PopReadyQueue(ctx)
-		if err != nil {
-			log.Printf("Couldnt execute job!!!: %v", err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-		if job == nil {
-			continue
-		}
-		log.Printf("worker %v took job %v", w.ID, job.ID)
-		exec := Executor{worker: w}
-		exec.ExecuteJob(job)
 	}
 }
