@@ -31,6 +31,7 @@ func (s *Scheduler) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			go s.PopReadyQueue(ctx)
 			jobs, _ := s.PopWaitingQueue(ctx)
 			for _, job := range jobs {
 				s.PushReadyQueue(ctx, job)
