@@ -12,15 +12,18 @@ import (
 
 type Scheduler struct {
 	redis *Redis
+	JobCh chan *jobs.Job
 }
 
 func NewScheduler(r *Redis) *Scheduler {
 	return &Scheduler{
 		redis: r,
+		JobCh: make(chan *jobs.Job),
 	}
 }
 
 func (s *Scheduler) Run(ctx context.Context) {
+	defer close(s.JobCh)
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -55,11 +58,13 @@ func (s *Scheduler) PopReadyQueue(ctx context.Context) (*jobs.Job, error) {
 		return nil, err
 	}
 
-	var job jobs.Job
-	if err := json.Unmarshal([]byte(res[1]), &job); err != nil {
+	var job *jobs.Job = new(jobs.Job)
+	if err := json.Unmarshal([]byte(res[1]), job); err != nil {
 		return nil, err
 	}
-	return &job, nil
+
+	s.JobCh <- job
+	return job, nil
 }
 
 func (s *Scheduler) PushWaitingQueue(ctx context.Context, job *jobs.Job, delay int) error {

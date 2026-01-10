@@ -3,7 +3,6 @@ package worker
 import (
 	"context"
 	"log"
-	"time"
 
 	"github.com/blueberry-adii/tickr/internal/scheduler"
 )
@@ -25,15 +24,9 @@ func (w *Worker) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			job, err := w.Scheduler.PopReadyQueue(ctx)
-			if err != nil {
-				log.Printf("Couldnt execute job!!!: %v", err)
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			if job == nil {
-				continue
+		case job, ok := <-w.Scheduler.JobCh:
+			if !ok {
+				return
 			}
 			log.Printf("worker %v took job %v", w.ID, job.ID)
 			exec := Executor{worker: w}
