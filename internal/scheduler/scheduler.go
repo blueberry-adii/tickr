@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"strconv"
 	"time"
 
@@ -13,31 +14,63 @@ import (
 type Scheduler struct {
 	redis *Redis
 	JobCh chan *jobs.Job
+	wqCh  chan int
 }
 
 func NewScheduler(r *Redis) *Scheduler {
 	return &Scheduler{
 		redis: r,
 		JobCh: make(chan *jobs.Job),
+		wqCh:  make(chan int),
 	}
 }
 
 func (s *Scheduler) Run(ctx context.Context) {
 	defer close(s.JobCh)
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
+	defer close(s.wqCh)
+	go s.PopReadyQueue(ctx)
 	for {
+		log.Printf("Scheduler Woke Up")
+		nextExec, err := s.nextExecutionTime(ctx)
+
+		var timer <-chan time.Time
+		if err == nil {
+			wait := time.Until(time.Unix(nextExec, 0))
+			if wait < 0 {
+				wait = 0
+			}
+			timer = time.After(wait)
+		}
+
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
-			go s.PopReadyQueue(ctx)
+		case <-s.wqCh:
+			continue
+		case <-timer:
 			jobs, _ := s.PopWaitingQueue(ctx)
 			for _, job := range jobs {
 				s.PushReadyQueue(ctx, job)
 			}
+		case <-s.JobCh:
+			go s.PopReadyQueue(ctx)
 		}
 	}
+}
+
+func (s *Scheduler) nextExecutionTime(ctx context.Context) (int64, error) {
+	res, err := s.redis.client.ZRangeWithScores(
+		ctx,
+		"tickr:queue:waiting",
+		0,
+		0,
+	).Result()
+
+	if err != nil || len(res) == 0 {
+		return 0, redis.Nil
+	}
+
+	return int64(res[0].Score), nil
 }
 
 func (s *Scheduler) PushReadyQueue(ctx context.Context, job *jobs.Job) error {
@@ -50,7 +83,7 @@ func (s *Scheduler) PushReadyQueue(ctx context.Context, job *jobs.Job) error {
 }
 
 func (s *Scheduler) PopReadyQueue(ctx context.Context) (*jobs.Job, error) {
-	res, err := s.redis.client.BRPop(ctx, time.Second*5, "tickr:queue:ready").Result()
+	res, err := s.redis.client.BRPop(ctx, 0, "tickr:queue:ready").Result()
 
 	if err == redis.Nil {
 		return nil, nil
@@ -76,10 +109,19 @@ func (s *Scheduler) PushWaitingQueue(ctx context.Context, job *jobs.Job, delay i
 
 	executeAt := time.Now().Add(time.Second * time.Duration(delay)).Unix()
 
-	return s.redis.client.ZAdd(ctx, "tickr:queue:waiting", &redis.Z{
+	err = s.redis.client.ZAdd(ctx, "tickr:queue:waiting", &redis.Z{
 		Score:  float64(executeAt),
 		Member: data,
 	}).Err()
+
+	if err == nil {
+		select {
+		case s.wqCh <- 1:
+		default:
+		}
+	}
+
+	return err
 }
 
 func (s *Scheduler) PopWaitingQueue(ctx context.Context) ([]*jobs.Job, error) {

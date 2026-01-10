@@ -21,6 +21,7 @@ func NewWorker(id int, s *scheduler.Scheduler) *Worker {
 
 func (w *Worker) Run(ctx context.Context) {
 	for {
+		log.Printf("Worker %v woke up", w.ID)
 		select {
 		case <-ctx.Done():
 			return
