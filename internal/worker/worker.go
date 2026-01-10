@@ -22,7 +22,7 @@ func NewWorker(id int, q *queue.RedisQueue) *Worker {
 
 func (w *Worker) Run(ctx context.Context) {
 	for {
-		job, err := w.Queue.Dequeue(ctx)
+		job, err := w.Queue.PopReadyQueue(ctx)
 		if err != nil {
 			log.Printf("Couldnt execute job!!!: %v", err)
 			time.Sleep(5 * time.Second)

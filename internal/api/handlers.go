@@ -58,7 +58,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: time.Now(),
 	}
 
-	h.queue.Enqueue(r.Context(), &job)
+	h.queue.PushReadyQueue(r.Context(), &job)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response{
