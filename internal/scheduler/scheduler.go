@@ -24,12 +24,14 @@ func (s *Scheduler) Run(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {
-		<-ticker.C
-
-		jobs, _ := s.PopWaitingQueue(ctx)
-
-		for _, job := range jobs {
-			s.PushReadyQueue(ctx, job)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			jobs, _ := s.PopWaitingQueue(ctx)
+			for _, job := range jobs {
+				s.PushReadyQueue(ctx, job)
+			}
 		}
 	}
 }

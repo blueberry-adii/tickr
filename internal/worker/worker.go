@@ -22,6 +22,11 @@ func NewWorker(id int, s *scheduler.Scheduler) *Worker {
 
 func (w *Worker) Run(ctx context.Context) {
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		job, err := w.Scheduler.PopReadyQueue(ctx)
 		if err != nil {
 			log.Printf("Couldnt execute job!!!: %v", err)
