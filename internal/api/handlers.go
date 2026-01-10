@@ -43,6 +43,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		JobType string          `json:"jobtype"`
 		Payload json.RawMessage `json:"payload"`
+		Delay   int             `json:"delay"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -58,7 +59,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: time.Now(),
 	}
 
-	h.scheduler.PushReadyQueue(r.Context(), &job)
+	h.scheduler.PushWaitingQueue(r.Context(), &job, body.Delay)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response{
