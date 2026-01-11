@@ -8,10 +8,18 @@ import (
 	"github.com/blueberry-adii/tickr/internal/jobs"
 )
 
+/*
+Executor struct needs a worker assigned through
+dependency injection
+*/
 type Executor struct {
 	worker *Worker
 }
 
+/*
+ExecuteJob is a method which runs switch case conditions
+to decide which job handler to run based on job type
+*/
 func (e *Executor) ExecuteJob(job *jobs.Job) {
 	switch job.JobType {
 	case "email":
@@ -23,6 +31,9 @@ func (e *Executor) ExecuteJob(job *jobs.Job) {
 	}
 }
 
+/*
+Method to simulate email sending
+*/
 func (e *Executor) handleEmail(job *jobs.Job) {
 	var email struct {
 		To   string `json:"to"`
@@ -40,6 +51,9 @@ func (e *Executor) handleEmail(job *jobs.Job) {
 	log.Printf("Sent Email: %s", email.Body)
 }
 
+/*
+Method to simulate report handling
+*/
 func (e *Executor) handleReport(job *jobs.Job) {
 	var report struct {
 		Title string `json:"title"`

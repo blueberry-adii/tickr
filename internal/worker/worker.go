@@ -7,11 +7,18 @@ import (
 	"github.com/blueberry-adii/tickr/internal/scheduler"
 )
 
+/*
+Defines Worker struct with ID
+and scheduler which assigns it the jobs
+*/
 type Worker struct {
 	ID        int
 	Scheduler *scheduler.Scheduler
 }
 
+/*
+Worker Constructor
+*/
 func NewWorker(id int, s *scheduler.Scheduler) *Worker {
 	return &Worker{
 		ID:        id,
@@ -19,19 +26,39 @@ func NewWorker(id int, s *scheduler.Scheduler) *Worker {
 	}
 }
 
+/*
+The Worker Run method is an infinite loop
+which uses select case statements to block execution inside the loop
+this avoids `polling and constantly running the loop to check for jobs`
+and saves resources
+
+It waits on multiple (2) channels, and when either channel provides a signal,
+the block is executed and worker moves onto next iteration and blocks again
+till the next signal
+*/
 func (w *Worker) Run(ctx context.Context) {
 	for {
 		log.Printf("worker %v idle", w.ID)
 		select {
+		/*
+			Executes when the main context is cancelled
+			to shutdown the worker and return from run
+		*/
 		case <-ctx.Done():
 			log.Printf("worker %d shutting down", w.ID)
 			return
+		/*
+			waits for a signal from job channel in scheduler.
+			when there is a new job in ready queue, job channel notifies
+			worker and this block is executed
+		*/
 		case job, ok := <-w.Scheduler.JobCh:
 			if !ok {
 				log.Printf("worker %d shutting down", w.ID)
 				return
 			}
 			log.Printf("worker %v took job %v", w.ID, job.ID)
+			/*Create a new Executor and Execute the job assigned to this worker*/
 			exec := Executor{worker: w}
 			exec.ExecuteJob(job)
 		}
