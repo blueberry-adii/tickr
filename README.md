@@ -12,6 +12,8 @@ The idea is simple:
 
 ## Architecture & Tech Stack
 
+![Architecture Diagram](./assets/diagram.svg)
+
 - **Language**: Go (Golang) - chosen for its amazing concurrency (`goroutines` and `channels`).
 - **Storage**: Redis - used as the queue engine.
   - **Lists (`LPUSH`/`BRPOP`)**: For the Ready queue.
