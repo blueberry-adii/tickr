@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+/*
+Job struct defines what fields each Job
+must have
+Payload is the data needed to execute the Job
+*/
 type Job struct {
 	ID        string          `json:"id"`
 	JobType   string          `json:"jobtype"`
