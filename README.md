@@ -2,6 +2,8 @@
 
 **Tickr** is a robust asynchronous job processing system I built using Go and Redis. It's designed to offload heavy tasks from APIs so they don't block, handling everything in the background with concurrency and reliability.
 
+#### Refer [SETUP](./docs/setup.md) to setup and run this project locally
+
 ## The Core Concept
 
 The idea is simple:
@@ -90,3 +92,5 @@ If I were to take this to v2, I'd probably add:
 | **Scalability**        | ✅     | Worker pool size is configurable.                            |
 
 ### --- Made By Aditya Prasad ---
+
+[**LinkedIn**](https://www.linkedin.com/in/aditya-prasad-095ab9329/) | [**Dev.to**](https://dev.to/blueberry_adii) | [**X.com**](https://x.com/AdityaPrasad455)
