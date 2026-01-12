@@ -34,7 +34,9 @@ This endpoint is the essential of this application. You send a post request on t
 ## Examples:
 
 ```bash
-curl -X POST localhost:8080/api/v1/jobs/ -H "Content-Type: application/json" -d '{"jobType":"email", "payload":{"to":"john@gmail.com", "from":"aditya@proton.me", "body":"Email Messaging is working"}, "delay":5}'
+curl -X POST localhost:8080/api/v1/jobs/ \
+-H "Content-Type: application/json" \
+-d '{"jobType":"email", "payload":{"to":"john@gmail.com", "from":"aditya@proton.me", "body":"Email Messaging is working"}, "delay":5}'
 
 -> {"status":200,"message":"Job Submitted!!!","data":null,"success":true}
 ```
@@ -42,7 +44,9 @@ curl -X POST localhost:8080/api/v1/jobs/ -H "Content-Type: application/json" -d 
 ---
 
 ```bash
-curl -X POST localhost:8080/api/v1/jobs/ -H "Content-Type: application/json" -d '{"jobType":"report", "payload": {"title":"Weather Report", "body":"Weather today is Rainy", "time":10}, "delay":5
+curl -X POST localhost:8080/api/v1/jobs/ \
+-H "Content-Type: application/json" \
+-d '{"jobType":"report", "payload": {"title":"Weather Report", "body":"Weather today is Rainy", "time":10}, "delay":5
 }'
 
 -> {"status":200,"message":"Job Submitted!!!","data":null,"success":true}
