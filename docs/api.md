@@ -46,8 +46,7 @@ curl -X POST localhost:8080/api/v1/jobs/ \
 ```bash
 curl -X POST localhost:8080/api/v1/jobs/ \
 -H "Content-Type: application/json" \
--d '{"jobType":"report", "payload": {"title":"Weather Report", "body":"Weather today is Rainy", "time":10}, "delay":5
-}'
+-d '{"jobType":"report", "payload": {"title":"Weather Report", "body":"Weather today is Rainy", "time":10}, "delay":5}'
 
 -> {"status":200,"message":"Job Submitted!!!","data":null,"success":true}
 ```
