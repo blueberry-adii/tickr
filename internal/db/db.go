@@ -3,7 +3,10 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type Config struct {
@@ -38,5 +41,6 @@ func ConnectDB(cfg Config) (*sql.DB, error) {
 		return nil, err
 	}
 
+	log.Printf("Connected to MySQL Database Successfully")
 	return db, nil
 }
