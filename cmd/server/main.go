@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/blueberry-adii/tickr/internal/api"
+	"github.com/blueberry-adii/tickr/internal/db"
 	"github.com/blueberry-adii/tickr/internal/scheduler"
 	"github.com/blueberry-adii/tickr/internal/worker"
 )
@@ -43,6 +44,19 @@ func main() {
 		log.Println("Shutdown signal recieved")
 		cancel()
 	}()
+
+	cfg := db.Config{
+		User:     "root",
+		Password: "pass",
+		Host:     "localhost",
+		Port:     3306,
+		Database: "tickr",
+	}
+	db, err := db.ConnectDB(cfg)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
 
 	/*
 		Create Multiplexer Router to serve http Endpoints
