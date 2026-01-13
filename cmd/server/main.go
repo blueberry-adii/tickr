@@ -12,7 +12,6 @@ import (
 
 	"github.com/blueberry-adii/tickr/internal/api"
 	"github.com/blueberry-adii/tickr/internal/database"
-	"github.com/blueberry-adii/tickr/internal/db"
 	"github.com/blueberry-adii/tickr/internal/scheduler"
 	"github.com/blueberry-adii/tickr/internal/worker"
 )
@@ -46,14 +45,14 @@ func main() {
 		cancel()
 	}()
 
-	cfg := db.Config{
+	cfg := database.Config{
 		User:     "root",
 		Password: "pass",
 		Host:     "localhost",
 		Port:     3306,
 		Database: "tickr",
 	}
-	db, err := db.ConnectDB(cfg)
+	db, err := database.ConnectDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
