@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/blueberry-adii/tickr/internal/api"
+	"github.com/blueberry-adii/tickr/internal/database"
 	"github.com/blueberry-adii/tickr/internal/db"
 	"github.com/blueberry-adii/tickr/internal/scheduler"
 	"github.com/blueberry-adii/tickr/internal/worker"
@@ -58,6 +59,7 @@ func main() {
 	}
 	defer db.Close()
 
+	repository := database.NewMySQLRepository(db)
 	/*
 		Create Multiplexer Router to serve http Endpoints
 	*/
