@@ -3,6 +3,8 @@ package jobs
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/blueberry-adii/tickr/internal/enums"
 )
 
 /*
@@ -14,6 +16,6 @@ type Job struct {
 	ID        string          `json:"id"`
 	JobType   string          `json:"jobtype"`
 	Payload   json.RawMessage `json:"payload"`
-	Status    string          `json:"status"`
+	Status    enums.Status    `json:"status"`
 	CreatedAt time.Time       `json:"createdAt"`
 }
