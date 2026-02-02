@@ -22,8 +22,8 @@ type response struct {
 }
 
 /*
-Handler Struct which depends on scheduler through
-dependency injection
+Handler Struct which depends on scheduler and repository
+through dependency injection
 */
 type Handler struct {
 	scheduler  *scheduler.Scheduler
@@ -74,6 +74,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: time.Now(),
 	}
 
+	/*Save Job in MySQL Database using Repository*/
 	var err error
 	job.ID, err = h.repository.SaveJob(r.Context(), job)
 	if err != nil {

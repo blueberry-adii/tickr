@@ -45,6 +45,7 @@ func main() {
 		cancel()
 	}()
 
+	/*Database configuration and connection*/
 	cfg := database.Config{
 		User:     "root",
 		Password: "pass",
@@ -58,6 +59,7 @@ func main() {
 	}
 	defer db.Close()
 
+	/*Repository instance for MySQL*/
 	repository := database.NewMySQLRepository(db)
 	/*
 		Create Multiplexer Router to serve http Endpoints
@@ -66,7 +68,7 @@ func main() {
 
 	/*
 		Create an instance of RedisClient and inject that into instance of scheduler.
-		Inject the scheduler instance into http Handler
+		Inject the scheduler and repository instance into http Handler
 	*/
 	redis := scheduler.NewRedis("localhost:6379")
 	scheduler := scheduler.NewScheduler(redis)
