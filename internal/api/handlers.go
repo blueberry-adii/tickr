@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/blueberry-adii/tickr/internal/database"
 	"github.com/blueberry-adii/tickr/internal/jobs"
 	"github.com/blueberry-adii/tickr/internal/scheduler"
-	"github.com/google/uuid"
 )
 
 /*
@@ -26,13 +26,15 @@ Handler Struct which depends on scheduler through
 dependency injection
 */
 type Handler struct {
-	scheduler *scheduler.Scheduler
+	scheduler  *scheduler.Scheduler
+	repository *database.MySQLRepository
 }
 
 /*Handler Constructor*/
-func NewHandler(s *scheduler.Scheduler) *Handler {
+func NewHandler(s *scheduler.Scheduler, r *database.MySQLRepository) *Handler {
 	return &Handler{
-		scheduler: s,
+		scheduler:  s,
+		repository: r,
 	}
 }
 
@@ -66,11 +68,17 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 
 	/*Create a New Job with the given data from request body*/
 	job := jobs.Job{
-		ID:        uuid.NewString(),
 		JobType:   body.JobType,
 		Payload:   body.Payload,
 		Status:    "pending",
 		CreatedAt: time.Now(),
+	}
+
+	var err error
+	job.ID, err = h.repository.SaveJob(r.Context(), job)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	/*

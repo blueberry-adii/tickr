@@ -70,7 +70,7 @@ func main() {
 	*/
 	redis := scheduler.NewRedis("localhost:6379")
 	scheduler := scheduler.NewScheduler(redis)
-	handler := api.NewHandler(scheduler)
+	handler := api.NewHandler(scheduler, repository)
 
 	/*
 		Run the scheduler as a goroutine and add it
