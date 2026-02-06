@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/blueberry-adii/tickr/internal/database"
+	"github.com/blueberry-adii/tickr/internal/enums"
 	"github.com/blueberry-adii/tickr/internal/jobs"
 	"github.com/blueberry-adii/tickr/internal/scheduler"
 )
@@ -66,12 +67,18 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	now := time.Now()
+	scheduledAt := now.Add(time.Duration(body.Delay) * time.Second)
+
 	/*Create a New Job with the given data from request body*/
 	job := jobs.Job{
-		JobType:   body.JobType,
-		Payload:   body.Payload,
-		Status:    "pending",
-		CreatedAt: time.Now(),
+		JobType:     body.JobType,
+		Payload:     body.Payload,
+		Status:      enums.Pending,
+		Attempt:     0,
+		MaxAttempts: 3,
+		CreatedAt:   now,
+		ScheduledAt: scheduledAt,
 	}
 
 	/*Save Job in MySQL Database using Repository*/

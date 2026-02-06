@@ -26,11 +26,14 @@ return job ID
 func (r MySQLRepository) SaveJob(ctx context.Context, job jobs.Job) (int64, error) {
 	res, err := r.db.ExecContext(
 		ctx,
-		"INSERT INTO jobs (job_type, payload, status, created_at) VALUES (?, ?, ?);",
+		"INSERT INTO jobs (job_type, payload, status, attempt, max_attempts, created_at, scheduled_at) VALUES (?, ?, ?, ?, ?, ?, ?);",
 		job.JobType,
 		job.Payload,
 		job.Status,
+		job.Attempt,
+		job.MaxAttempts,
 		job.CreatedAt,
+		job.ScheduledAt,
 	)
 
 	if err != nil {
