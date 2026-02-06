@@ -109,7 +109,11 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response{
 		Status:  http.StatusOK,
 		Message: "Job Submitted!!!",
-		Data:    nil,
+		Data: map[string]any{
+			"jobID":       job.ID,
+			"status":      job.Status,
+			"scheduledAt": job.ScheduledAt,
+		},
 		Success: true,
 	})
 }
