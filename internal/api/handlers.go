@@ -94,7 +94,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		otherwise push into ready queue
 	*/
 	if body.Delay > 0 {
-		h.scheduler.PushWaitingQueue(r.Context(), &job, body.Delay)
+		h.scheduler.PushWaitingQueue(r.Context(), job.ID, job.ScheduledAt)
 	} else {
 		h.scheduler.PushReadyQueue(r.Context(), &job)
 	}

@@ -200,18 +200,15 @@ func (s *Scheduler) PopReadyQueue(ctx context.Context) {
 /*
 Method to push a job in waiting queue, with duration the job stays in waiting queue
 */
-func (s *Scheduler) PushWaitingQueue(ctx context.Context, job *jobs.Job, delay int) error {
-	data, err := json.Marshal(job)
+func (s *Scheduler) PushWaitingQueue(ctx context.Context, jobID int64, executeAt time.Time) error {
+	data, err := json.Marshal(jobs.RedisJob{JobID: jobID})
 	if err != nil {
 		return err
 	}
 
-	/*Calculates the time when the job needs to be moved from waiting queue to ready queue*/
-	executeAt := time.Now().Add(time.Second * time.Duration(delay)).Unix()
-
-	/*Adds the job into Redis ZSet sorted according to their delay*/
+	/*Adds the job into Redis ZSet sorted according to their time of execution*/
 	err = s.redis.client.ZAdd(ctx, "tickr:queue:waiting", &redis.Z{
-		Score:  float64(executeAt),
+		Score:  float64(executeAt.Unix()),
 		Member: data,
 	}).Err()
 
