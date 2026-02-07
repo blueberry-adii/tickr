@@ -3,6 +3,8 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"github.com/blueberry-adii/tickr/internal/jobs"
 )
@@ -41,4 +43,40 @@ func (r MySQLRepository) SaveJob(ctx context.Context, job jobs.Job) (int64, erro
 	}
 
 	return res.LastInsertId()
+}
+
+func (r MySQLRepository) GetJob(ctx context.Context, jobID int64) (*jobs.Job, error) {
+	row := r.db.QueryRowContext(
+		ctx,
+		"SELECT * FROM jobs WHERE job_id = ?",
+		jobID,
+	)
+
+	var job jobs.Job
+	err := row.Scan(
+		&job.ID,
+		&job.JobType,
+		&job.Payload,
+
+		&job.Status,
+		&job.Attempt,
+		&job.MaxAttempts,
+
+		&job.ScheduledAt,
+		&job.CreatedAt,
+		&job.StartedAt,
+		&job.FinishedAt,
+
+		&job.LastError,
+		&job.WorkerID,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New(fmt.Sprintf("job with id %v not found", jobID))
+		}
+		return nil, err
+	}
+
+	return &job, nil
 }

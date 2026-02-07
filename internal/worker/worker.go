@@ -57,7 +57,7 @@ func (w *Worker) Run(ctx context.Context) {
 				log.Printf("worker %d shutting down", w.ID)
 				return
 			}
-			log.Printf("worker %v took job %v", w.ID, job.ID)
+			log.Printf("worker %v took job %v", w.ID, job.JobID)
 			/*Create a new Executor and Execute the job assigned to this worker*/
 			exec := Executor{worker: w}
 			exec.ExecuteJob(job)
