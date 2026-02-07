@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/blueberry-adii/tickr/internal/database"
 	"github.com/blueberry-adii/tickr/internal/jobs"
 	"github.com/go-redis/redis/v8"
 )
@@ -17,20 +18,22 @@ has a job channel to notify when a job is pushed to ready queue,
 has a waiting queue channel to notify when a new job is pushed to waiting queue
 */
 type Scheduler struct {
-	redis *Redis
-	JobCh chan *jobs.RedisJob
-	wqCh  chan int
+	Repository *database.MySQLRepository
+	redis      *Redis
+	JobCh      chan *jobs.RedisJob
+	wqCh       chan int
 }
 
 /*
 Scheduler constructor, accept redis client,
 create a job channel and a wq channel
 */
-func NewScheduler(r *Redis) *Scheduler {
+func NewScheduler(r *Redis, repo *database.MySQLRepository) *Scheduler {
 	return &Scheduler{
-		redis: r,
-		JobCh: make(chan *jobs.RedisJob),
-		wqCh:  make(chan int),
+		Repository: repo,
+		redis:      r,
+		JobCh:      make(chan *jobs.RedisJob),
+		wqCh:       make(chan int),
 	}
 }
 

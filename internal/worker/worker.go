@@ -52,12 +52,18 @@ func (w *Worker) Run(ctx context.Context) {
 			when there is a new job in ready queue, job channel notifies
 			worker and this block is executed
 		*/
-		case job, ok := <-w.Scheduler.JobCh:
+		case redisJob, ok := <-w.Scheduler.JobCh:
 			if !ok {
 				log.Printf("worker %d shutting down", w.ID)
 				return
 			}
-			log.Printf("worker %v took job %v", w.ID, job.JobID)
+			log.Printf("worker %v took job %v", w.ID, redisJob.JobID)
+
+			job, err := w.Scheduler.Repository.GetJob(ctx, redisJob.JobID)
+			if err != nil {
+				break
+			}
+
 			/*Create a new Executor and Execute the job assigned to this worker*/
 			exec := Executor{worker: w}
 			exec.ExecuteJob(job)

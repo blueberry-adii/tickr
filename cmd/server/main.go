@@ -71,7 +71,7 @@ func main() {
 		Inject the scheduler and repository instance into http Handler
 	*/
 	redis := scheduler.NewRedis("localhost:6379")
-	scheduler := scheduler.NewScheduler(redis)
+	scheduler := scheduler.NewScheduler(redis, repository)
 	handler := api.NewHandler(scheduler, repository)
 
 	/*
