@@ -2,6 +2,7 @@ package worker
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"time"
 
@@ -20,21 +21,21 @@ type Executor struct {
 ExecuteJob is a method which runs switch case conditions
 to decide which job handler to run based on job type
 */
-func (e *Executor) ExecuteJob(job *jobs.Job) {
+func (e *Executor) ExecuteJob(job *jobs.Job) error {
 	switch job.JobType {
 	case "email":
-		e.handleEmail(job)
+		return e.handleEmail(job)
 	case "report":
-		e.handleReport(job)
+		return e.handleReport(job)
 	default:
-		log.Printf("Unrecognized Job")
+		return errors.New("unrecognized job")
 	}
 }
 
 /*
 Method to simulate email sending
 */
-func (e *Executor) handleEmail(job *jobs.Job) {
+func (e *Executor) handleEmail(job *jobs.Job) error {
 	var email struct {
 		To   string `json:"to"`
 		From string `json:"from"`
@@ -43,18 +44,19 @@ func (e *Executor) handleEmail(job *jobs.Job) {
 
 	if err := json.Unmarshal([]byte(job.Payload), &email); err != nil {
 		log.Printf("Invalid Email Format: %v", err)
-		return
+		return err
 	}
 
 	log.Printf("Sending email from %s to %s", email.From, email.To)
 	time.Sleep(time.Second * 5)
 	log.Printf("Sent Email: %s", email.Body)
+	return nil
 }
 
 /*
 Method to simulate report handling
 */
-func (e *Executor) handleReport(job *jobs.Job) {
+func (e *Executor) handleReport(job *jobs.Job) error {
 	var report struct {
 		Title string `json:"title"`
 		Body  string `json:"body"`
@@ -63,10 +65,11 @@ func (e *Executor) handleReport(job *jobs.Job) {
 
 	if err := json.Unmarshal([]byte(job.Payload), &report); err != nil {
 		log.Printf("Invalid Report Format: %v", err)
-		return
+		return err
 	}
 
 	log.Printf("Scheduled report for %d seconds", report.Time)
 	time.Sleep(time.Second * time.Duration(report.Time))
 	log.Printf("Title: %s | Body: %s", report.Title, report.Body)
+	return nil
 }

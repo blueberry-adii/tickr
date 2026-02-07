@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/blueberry-adii/tickr/internal/enums"
 	"github.com/blueberry-adii/tickr/internal/jobs"
 )
 
@@ -94,4 +95,23 @@ func (r MySQLRepository) GetJob(ctx context.Context, jobID int64) (*jobs.Job, er
 	}
 
 	return &job, nil
+}
+
+func (r MySQLRepository) UpdateJobStatus(ctx context.Context, job *jobs.Job, status enums.Status) error {
+	if status != enums.Executing {
+		job.WorkerID = nil
+	}
+
+	_, err := r.db.ExecContext(
+		ctx,
+		"UPDATE jobs SET status = ?, worker_id = ? WHERE id = ?",
+		string(status),
+		job.WorkerID,
+		job.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

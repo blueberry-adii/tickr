@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/blueberry-adii/tickr/internal/enums"
 	"github.com/blueberry-adii/tickr/internal/scheduler"
 )
 
@@ -64,9 +65,16 @@ func (w *Worker) Run(ctx context.Context) {
 				break
 			}
 
+			w.Scheduler.Repository.UpdateJobStatus(ctx, job, enums.Executing)
+
 			/*Create a new Executor and Execute the job assigned to this worker*/
 			exec := Executor{worker: w}
-			exec.ExecuteJob(job)
+			if err := exec.ExecuteJob(job); err != nil {
+				log.Printf("error: %v", err.Error())
+				w.Scheduler.Repository.UpdateJobStatus(ctx, job, enums.Failed)
+			} else {
+				w.Scheduler.Repository.UpdateJobStatus(ctx, job, enums.Completed)
+			}
 		}
 	}
 }
