@@ -89,14 +89,16 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	redisJob := &jobs.RedisJob{JobID: job.ID}
+
 	/*
 		If job is scheduled/given delay, push the job into waiting queue,
 		otherwise push into ready queue
 	*/
 	if body.Delay > 0 {
-		h.scheduler.PushWaitingQueue(r.Context(), job.ID, job.ScheduledAt)
+		h.scheduler.PushWaitingQueue(r.Context(), redisJob, job.ScheduledAt)
 	} else {
-		h.scheduler.PushReadyQueue(r.Context(), &job)
+		h.scheduler.PushReadyQueue(r.Context(), redisJob)
 	}
 
 	/*

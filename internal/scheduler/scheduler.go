@@ -18,7 +18,7 @@ has a waiting queue channel to notify when a new job is pushed to waiting queue
 */
 type Scheduler struct {
 	redis *Redis
-	JobCh chan *jobs.Job
+	JobCh chan *jobs.RedisJob
 	wqCh  chan int
 }
 
@@ -29,7 +29,7 @@ create a job channel and a wq channel
 func NewScheduler(r *Redis) *Scheduler {
 	return &Scheduler{
 		redis: r,
-		JobCh: make(chan *jobs.Job),
+		JobCh: make(chan *jobs.RedisJob),
 		wqCh:  make(chan int),
 	}
 }
@@ -92,7 +92,7 @@ func (s *Scheduler) Run(ctx context.Context) {
 		case <-timer:
 			jobs, _ := s.PopWaitingQueue(ctx)
 			for _, job := range jobs {
-				log.Printf("moving job %v from waiting to ready queue", job.ID)
+				log.Printf("moving job %v from waiting to ready queue", job.JobID)
 				s.PushReadyQueue(ctx, job)
 			}
 		}
@@ -121,7 +121,7 @@ func (s *Scheduler) nextExecutionTime(ctx context.Context) (int64, error) {
 /*
 method to Push job in ready queue
 */
-func (s *Scheduler) PushReadyQueue(ctx context.Context, job *jobs.Job) error {
+func (s *Scheduler) PushReadyQueue(ctx context.Context, job *jobs.RedisJob) error {
 	data, err := json.Marshal(job)
 	if err != nil {
 		return err
@@ -172,7 +172,7 @@ func (s *Scheduler) PopReadyQueue(ctx context.Context) {
 			Create a new empty job, and fill all the fields
 			from job's json data fetched from redis into empty job
 		*/
-		var job *jobs.Job = new(jobs.Job)
+		var job *jobs.RedisJob = new(jobs.RedisJob)
 		if err := json.Unmarshal([]byte(res[1]), job); err != nil {
 			log.Printf("Error unmarshalling job: %v", err)
 			continue
@@ -200,8 +200,8 @@ func (s *Scheduler) PopReadyQueue(ctx context.Context) {
 /*
 Method to push a job in waiting queue, with duration the job stays in waiting queue
 */
-func (s *Scheduler) PushWaitingQueue(ctx context.Context, jobID int64, executeAt time.Time) error {
-	data, err := json.Marshal(jobs.RedisJob{JobID: jobID})
+func (s *Scheduler) PushWaitingQueue(ctx context.Context, job *jobs.RedisJob, executeAt time.Time) error {
+	data, err := json.Marshal(job)
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func (s *Scheduler) PushWaitingQueue(ctx context.Context, jobID int64, executeAt
 	return err
 }
 
-func (s *Scheduler) PopWaitingQueue(ctx context.Context) ([]*jobs.Job, error) {
+func (s *Scheduler) PopWaitingQueue(ctx context.Context) ([]*jobs.RedisJob, error) {
 	now := time.Now().Unix()
 
 	/*
@@ -246,14 +246,14 @@ func (s *Scheduler) PopWaitingQueue(ctx context.Context) ([]*jobs.Job, error) {
 		return nil, err
 	}
 
-	var readyJobs []*jobs.Job
+	var readyJobs []*jobs.RedisJob
 
 	/*
 		iterate over each job's json data and unmarshal it into Go struct and
 		push it into readyJobs slice, and remove from Redis set (waiting queue)
 	*/
 	for _, item := range res {
-		var job *jobs.Job
+		var job *jobs.RedisJob
 		if err := json.Unmarshal([]byte(item), &job); err != nil {
 			continue
 		}
