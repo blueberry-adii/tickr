@@ -85,7 +85,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 	var err error
 	job.ID, err = h.repository.SaveJob(r.Context(), job)
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

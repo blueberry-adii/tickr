@@ -31,5 +31,5 @@ type Job struct {
 	FinishedAt  *time.Time `json:"finishedAt"`
 
 	LastError *string `json:"lastError"`
-	WorkerID  *string `json:"workerID"`
+	WorkerID  *int    `json:"workerID"`
 }

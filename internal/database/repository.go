@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/blueberry-adii/tickr/internal/jobs"
 )
@@ -48,7 +49,20 @@ func (r MySQLRepository) SaveJob(ctx context.Context, job jobs.Job) (int64, erro
 func (r MySQLRepository) GetJob(ctx context.Context, jobID int64) (*jobs.Job, error) {
 	row := r.db.QueryRowContext(
 		ctx,
-		"SELECT * FROM jobs WHERE job_id = ?",
+		`SELECT 
+			id,
+			job_type,
+			payload,
+			status,
+			attempt,
+			max_attempts,
+			scheduled_at,
+			created_at,
+			started_at,
+			finished_at,
+			last_error,
+			worker_id 
+		FROM jobs WHERE id = ?`,
 		jobID,
 	)
 
@@ -72,6 +86,7 @@ func (r MySQLRepository) GetJob(ctx context.Context, jobID int64) (*jobs.Job, er
 	)
 
 	if err != nil {
+		log.Printf("%v", err)
 		if err == sql.ErrNoRows {
 			return nil, errors.New(fmt.Sprintf("job with id %v not found", jobID))
 		}
