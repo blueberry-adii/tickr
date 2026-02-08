@@ -15,6 +15,7 @@ services:
       - MYSQL_ROOT_PASSWORD=pass
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   redis:
     image: redis:latest
