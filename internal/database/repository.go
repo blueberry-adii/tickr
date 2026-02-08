@@ -47,6 +47,9 @@ func (r MySQLRepository) SaveJob(ctx context.Context, job jobs.Job) (int64, erro
 	return res.LastInsertId()
 }
 
+/*
+Get Job Method to get job by job ID from database
+*/
 func (r MySQLRepository) GetJob(ctx context.Context, jobID int64) (*jobs.Job, error) {
 	row := r.db.QueryRowContext(
 		ctx,
@@ -97,7 +100,11 @@ func (r MySQLRepository) GetJob(ctx context.Context, jobID int64) (*jobs.Job, er
 	return &job, nil
 }
 
+/*
+Update job method to update job by ID in the database
+*/
 func (r MySQLRepository) UpdateJob(ctx context.Context, job *jobs.Job) error {
+	/*if job isnt in executing status, clear worker and set it to nil in job instance*/
 	if job.Status != enums.Executing {
 		job.WorkerID = nil
 	}
@@ -120,6 +127,9 @@ func (r MySQLRepository) UpdateJob(ctx context.Context, job *jobs.Job) error {
 	return nil
 }
 
+/*
+Method to get the list of pending jobs including jobs which are in retrying state
+*/
 func (r MySQLRepository) GetPendingJobs(ctx context.Context) ([]jobs.RedisJob, error) {
 	rows, err := r.db.QueryContext(
 		ctx,
