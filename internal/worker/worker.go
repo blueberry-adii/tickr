@@ -3,8 +3,10 @@ package worker
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/blueberry-adii/tickr/internal/enums"
+	"github.com/blueberry-adii/tickr/internal/jobs"
 	"github.com/blueberry-adii/tickr/internal/scheduler"
 )
 
@@ -62,21 +64,46 @@ func (w *Worker) Run(ctx context.Context) {
 
 			job, err := w.Scheduler.Repository.GetJob(ctx, redisJob.JobID)
 			if err != nil {
-				break
+				log.Printf("failed to fetch job %d: %v", redisJob.JobID, err)
+				continue
 			}
 
-			w.Scheduler.Repository.UpdateJobStatus(ctx, job, enums.Executing)
+			now := time.Now()
+			job.StartedAt = &now
+			job.FinishedAt = nil
+
+			job.Status = enums.Executing
+			job.WorkerID = &w.ID
+			w.Scheduler.Repository.UpdateJob(ctx, job)
 
 			/*Create a new Executor and Execute the job assigned to this worker*/
 			exec := Executor{worker: w}
 			err = exec.ExecuteJob(job)
 			jobCtx := context.Background()
 
+			end := time.Now()
+			job.FinishedAt = &end
+			job.Attempt = job.Attempt + 1
 			if err != nil {
 				log.Printf("error: %v", err.Error())
-				w.Scheduler.Repository.UpdateJobStatus(jobCtx, job, enums.Failed)
+				errMsg := err.Error()
+				job.LastError = &errMsg
+				if job.Attempt < job.MaxAttempts {
+					log.Printf("retry: attempt %d of job %d failed, sending back to waiting queue", job.Attempt, job.ID)
+					job.Status = enums.Retrying
+					w.Scheduler.Repository.UpdateJob(jobCtx, job)
+					delay := end.Add(time.Second * 10 * time.Duration(job.Attempt))
+					w.Scheduler.PushWaitingQueue(jobCtx, &jobs.RedisJob{JobID: job.ID}, delay)
+				} else {
+					log.Printf("failed: attempt %d of job %d failed with max 3 attempts", job.Attempt, job.ID)
+					job.Status = enums.Failed
+					w.Scheduler.Repository.UpdateJob(jobCtx, job)
+				}
 			} else {
-				w.Scheduler.Repository.UpdateJobStatus(jobCtx, job, enums.Completed)
+				log.Printf("success: attempt %d of job %d was successful", job.Attempt, job.ID)
+				job.LastError = nil
+				job.Status = enums.Completed
+				w.Scheduler.Repository.UpdateJob(jobCtx, job)
 			}
 		}
 	}

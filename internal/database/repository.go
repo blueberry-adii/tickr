@@ -97,16 +97,20 @@ func (r MySQLRepository) GetJob(ctx context.Context, jobID int64) (*jobs.Job, er
 	return &job, nil
 }
 
-func (r MySQLRepository) UpdateJobStatus(ctx context.Context, job *jobs.Job, status enums.Status) error {
-	if status != enums.Executing {
+func (r MySQLRepository) UpdateJob(ctx context.Context, job *jobs.Job) error {
+	if job.Status != enums.Executing {
 		job.WorkerID = nil
 	}
 
 	_, err := r.db.ExecContext(
 		ctx,
-		"UPDATE jobs SET status = ?, worker_id = ? WHERE id = ?",
-		string(status),
+		"UPDATE jobs SET status = ?, worker_id = ?, attempt = ?, started_at = ?, finished_at = ?, last_error = ? WHERE id = ?",
+		job.Status,
 		job.WorkerID,
+		job.Attempt,
+		job.StartedAt,
+		job.FinishedAt,
+		job.LastError,
 		job.ID,
 	)
 	if err != nil {
