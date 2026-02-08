@@ -62,18 +62,23 @@ func (w *Worker) Run(ctx context.Context) {
 			}
 			log.Printf("worker %v took job %v", w.ID, redisJob.JobID)
 
+			/*Get Job by ID from database*/
 			job, err := w.Scheduler.Repository.GetJob(ctx, redisJob.JobID)
 			if err != nil {
 				log.Printf("failed to fetch job %d: %v", redisJob.JobID, err)
 				continue
 			}
 
+			/*Time at which job starts*/
 			now := time.Now()
 			job.StartedAt = &now
 			job.FinishedAt = nil
 
+			/*Set Job Status to executing and set worker ID to worker that took the job*/
 			job.Status = enums.Executing
 			job.WorkerID = &w.ID
+
+			/*Update the job details into database*/
 			w.Scheduler.Repository.UpdateJob(ctx, job)
 
 			/*Create a new Executor and Execute the job assigned to this worker*/
@@ -81,8 +86,11 @@ func (w *Worker) Run(ctx context.Context) {
 			err = exec.ExecuteJob(job)
 			jobCtx := context.Background()
 
+			/*time at which job finishes execution*/
 			end := time.Now()
 			job.FinishedAt = &end
+
+			/*Increment job attempt by 1*/
 			job.Attempt = job.Attempt + 1
 			if err != nil {
 				log.Printf("error: %v", err.Error())
