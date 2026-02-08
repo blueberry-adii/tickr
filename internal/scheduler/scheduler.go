@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/blueberry-adii/tickr/internal/database"
@@ -18,6 +19,7 @@ has a job channel to notify when a job is pushed to ready queue,
 has a waiting queue channel to notify when a new job is pushed to waiting queue
 */
 type Scheduler struct {
+	recovering int32
 	Repository *database.MySQLRepository
 	redis      *Redis
 	JobCh      chan *jobs.RedisJob
@@ -45,6 +47,10 @@ and serves many purposes:
 3. Block the infinite for loop and Listen to multiple channels
 */
 func (s *Scheduler) Run(ctx context.Context) {
+	if s.redisStateLost(ctx) {
+		log.Println("Redis state missing, rebuilding from MySQL")
+		s.recoverFromMySQL(ctx)
+	}
 	defer close(s.JobCh)
 	defer close(s.wqCh)
 	go s.PopReadyQueue(ctx)
@@ -167,6 +173,11 @@ func (s *Scheduler) PopReadyQueue(ctx context.Context) {
 				return
 			}
 			log.Printf("Error popping from ready queue: %v", err)
+			s.watchRedis(ctx)
+			if s.redisStateLost(ctx) {
+				s.triggerRecovery()
+			}
+
 			time.Sleep(time.Second)
 			continue
 		}
@@ -268,4 +279,52 @@ func (s *Scheduler) PopWaitingQueue(ctx context.Context) ([]*jobs.RedisJob, erro
 
 	/*Return all the readyJobs to be pushed into ready queue*/
 	return readyJobs, nil
+}
+
+func (s *Scheduler) redisStateLost(ctx context.Context) bool {
+	exists, err := s.redis.client.Exists(ctx, "tickr:redis:epoch").Result()
+	if err != nil {
+		return false
+	}
+	return exists == 0
+}
+
+func (s *Scheduler) triggerRecovery() {
+	if atomic.CompareAndSwapInt32(&s.recovering, 0, 1) {
+		go func() {
+			defer atomic.StoreInt32(&s.recovering, 0)
+			s.recoverFromMySQL(context.Background())
+		}()
+	}
+}
+
+func (s *Scheduler) recoverFromMySQL(ctx context.Context) {
+	log.Println("redis state lost, rebuilding queues")
+
+	jobs, err := s.Repository.GetPendingJobs(ctx)
+	if err != nil {
+		log.Printf("recovery failed: %v", err)
+		return
+	}
+
+	for _, job := range jobs {
+		executeAt := job.ScheduledAt
+		s.PushWaitingQueue(ctx, &job, executeAt)
+	}
+
+	s.redis.client.Set(ctx, "tickr:redis:epoch", time.Now().Unix(), 0)
+}
+
+func (s *Scheduler) watchRedis(ctx context.Context) {
+	for {
+		if err := s.redis.client.Ping(ctx).Err(); err == nil {
+			select {
+			case s.wqCh <- 1:
+			default:
+			}
+			break
+		}
+		log.Printf("err: redis connection inactive!!")
+		time.Sleep(time.Second)
+	}
 }

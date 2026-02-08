@@ -8,7 +8,8 @@ import (
 )
 
 type RedisJob struct {
-	JobID int64 `json:"job_id"`
+	JobID       int64     `json:"job_id"`
+	ScheduledAt time.Time `json:"scheduledAt"`
 }
 
 /*

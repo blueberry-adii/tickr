@@ -7,4 +7,5 @@ const (
 	Executing Status = "executing"
 	Completed Status = "completed"
 	Failed    Status = "failed"
+	Retrying  Status = "retrying"
 )

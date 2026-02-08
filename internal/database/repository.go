@@ -115,3 +115,26 @@ func (r MySQLRepository) UpdateJobStatus(ctx context.Context, job *jobs.Job, sta
 
 	return nil
 }
+
+func (r MySQLRepository) GetPendingJobs(ctx context.Context) ([]jobs.RedisJob, error) {
+	rows, err := r.db.QueryContext(
+		ctx,
+		"SELECT id, scheduled_at FROM jobs WHERE status IN ('pending', 'retrying')",
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var res []jobs.RedisJob
+
+	for rows.Next() {
+		var job jobs.RedisJob
+		if err := rows.Scan(&job.JobID, &job.ScheduledAt); err != nil {
+			return nil, err
+		}
+		res = append(res, job)
+	}
+
+	return res, nil
+}
