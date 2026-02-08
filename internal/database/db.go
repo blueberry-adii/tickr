@@ -41,6 +41,6 @@ func ConnectDB(cfg Config) (*sql.DB, error) {
 		return nil, err
 	}
 
-	log.Printf("Connected to MySQL Database Successfully")
+	log.Printf("connected to MySQL database successfully")
 	return db, nil
 }

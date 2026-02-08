@@ -41,7 +41,7 @@ func main() {
 	*/
 	go func() {
 		<-ch
-		log.Println("Shutdown signal recieved")
+		log.Println("shutdown signal recieved")
 		cancel()
 	}()
 
@@ -55,7 +55,7 @@ func main() {
 	}
 	db, err := database.ConnectDB(cfg)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
@@ -132,9 +132,9 @@ func main() {
 		through interrupt signal
 	*/
 	go func() {
-		log.Println("Listening on Port 8080")
+		log.Println("listening on Port 8080")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server error: %v", err)
+			log.Fatalf("server error: %v", err)
 		}
 	}()
 

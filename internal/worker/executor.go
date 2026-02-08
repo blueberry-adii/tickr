@@ -43,13 +43,13 @@ func (e *Executor) handleEmail(job *jobs.Job) error {
 	}
 
 	if err := json.Unmarshal([]byte(job.Payload), &email); err != nil {
-		log.Printf("Invalid Email Format: %v", err)
+		log.Printf("invalid email format: %v", err)
 		return err
 	}
 
-	log.Printf("Sending email from %s to %s", email.From, email.To)
+	log.Printf("sending email from %s to %s", email.From, email.To)
 	time.Sleep(time.Second * 5)
-	log.Printf("Sent Email: %s", email.Body)
+	log.Printf("sent email: %s", email.Body)
 	return nil
 }
 
@@ -64,11 +64,11 @@ func (e *Executor) handleReport(job *jobs.Job) error {
 	}
 
 	if err := json.Unmarshal([]byte(job.Payload), &report); err != nil {
-		log.Printf("Invalid Report Format: %v", err)
+		log.Printf("invalid report format: %v", err)
 		return err
 	}
 
-	log.Printf("Scheduled report for %d seconds", report.Time)
+	log.Printf("scheduled report for %d seconds", report.Time)
 	time.Sleep(time.Second * time.Duration(report.Time))
 	log.Printf("Title: %s | Body: %s", report.Title, report.Body)
 	return nil

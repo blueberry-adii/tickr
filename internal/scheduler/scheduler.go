@@ -48,14 +48,14 @@ and serves many purposes:
 */
 func (s *Scheduler) Run(ctx context.Context) {
 	if s.redisStateLost(ctx) {
-		log.Println("Redis state missing, rebuilding from MySQL")
+		log.Println("important: redis state missing, rebuilding from MySQL")
 		s.recoverFromMySQL(ctx)
 	}
 	defer close(s.JobCh)
 	defer close(s.wqCh)
 	go s.PopReadyQueue(ctx)
 	for {
-		log.Printf("Scheduler Idle")
+		log.Printf("scheduler idle")
 		/*
 			Calculate the time when the job with least delay
 			needs to be moved from waiting queue to ready queue
@@ -93,10 +93,10 @@ func (s *Scheduler) Run(ctx context.Context) {
 		*/
 		select {
 		case <-ctx.Done():
-			log.Printf("Killing Scheduler")
+			log.Printf("killing scheduler")
 			return
 		case <-s.wqCh:
-			log.Printf("New Job in WQ")
+			log.Printf("new job in waiting queue")
 			continue
 		case <-timer:
 			jobs, _ := s.PopWaitingQueue(ctx)
@@ -172,7 +172,7 @@ func (s *Scheduler) PopReadyQueue(ctx context.Context) {
 			if ctx.Err() != nil {
 				return
 			}
-			log.Printf("Error popping from ready queue: %v", err)
+			log.Printf("error popping from ready queue: %v", err)
 			s.watchRedis(ctx)
 			if s.redisStateLost(ctx) {
 				s.triggerRecovery()
@@ -188,7 +188,7 @@ func (s *Scheduler) PopReadyQueue(ctx context.Context) {
 		*/
 		var job *jobs.RedisJob = new(jobs.RedisJob)
 		if err := json.Unmarshal([]byte(res[1]), job); err != nil {
-			log.Printf("Error unmarshalling job: %v", err)
+			log.Printf("error unmarshalling job: %v", err)
 			continue
 		}
 
