@@ -49,7 +49,7 @@ func main() {
 	cfg := database.Config{
 		User:     "root",
 		Password: "pass",
-		Host:     "localhost",
+		Host:     "mysql",
 		Port:     3306,
 		Database: "tickr",
 	}
@@ -70,7 +70,7 @@ func main() {
 		Create an instance of RedisClient and inject that and repository into instance of scheduler.
 		Inject the scheduler instance into http Handler
 	*/
-	redis := scheduler.NewRedis("localhost:6379")
+	redis := scheduler.NewRedis("redis:6379")
 	scheduler := scheduler.NewScheduler(redis, repository)
 	handler := api.NewHandler(scheduler)
 

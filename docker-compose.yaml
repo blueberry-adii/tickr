@@ -1,12 +1,4 @@
 services:
-  app:
-    build: .
-    ports:
-      - "8080:8080"
-    depends_on:
-      - mysql
-      - redis
-
   mysql:
     image: mysql:latest
     ports:
@@ -16,11 +8,24 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:latest
     ports:
       - "6379:6379"
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+          condition: service_healthy
 
 volumes:
   mysql-data:
