@@ -67,12 +67,12 @@ func main() {
 	mux := http.NewServeMux()
 
 	/*
-		Create an instance of RedisClient and inject that into instance of scheduler.
-		Inject the scheduler and repository instance into http Handler
+		Create an instance of RedisClient and inject that and repository into instance of scheduler.
+		Inject the scheduler instance into http Handler
 	*/
 	redis := scheduler.NewRedis("localhost:6379")
 	scheduler := scheduler.NewScheduler(redis, repository)
-	handler := api.NewHandler(scheduler, repository)
+	handler := api.NewHandler(scheduler)
 
 	/*
 		Run the scheduler as a goroutine and add it

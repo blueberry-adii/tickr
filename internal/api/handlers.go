@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/blueberry-adii/tickr/internal/database"
 	"github.com/blueberry-adii/tickr/internal/enums"
 	"github.com/blueberry-adii/tickr/internal/jobs"
 	"github.com/blueberry-adii/tickr/internal/scheduler"
@@ -27,15 +26,13 @@ Handler Struct which depends on scheduler and repository
 through dependency injection
 */
 type Handler struct {
-	scheduler  *scheduler.Scheduler
-	repository *database.MySQLRepository
+	scheduler *scheduler.Scheduler
 }
 
 /*Handler Constructor*/
-func NewHandler(s *scheduler.Scheduler, r *database.MySQLRepository) *Handler {
+func NewHandler(s *scheduler.Scheduler) *Handler {
 	return &Handler{
-		scheduler:  s,
-		repository: r,
+		scheduler: s,
 	}
 }
 
@@ -83,7 +80,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 
 	/*Save Job in MySQL Database using Repository*/
 	var err error
-	job.ID, err = h.repository.SaveJob(r.Context(), job)
+	job.ID, err = h.scheduler.Repository.SaveJob(r.Context(), job)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
