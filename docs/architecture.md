@@ -1,49 +1,150 @@
 ## Code Walkthrough
 
-Here is how the pieces fit together across the codebase:
+Here’s how the pieces fit together in **Tickr v2**, and how the system behaves in the real world — including failures, retries, and recovery.
+
+---
 
 ### 1. The Entry Point (`cmd/server/main.go`)
 
-This is where everything wires up. I'm using **Dependency Injection** here to keep things testable.
+This is where everything gets wired together. I’m using **dependency injection** to keep things decoupled and testable.
 
-- **Graceful Shutdown**: This is crucial. I use `signal.Notify` to catch `CTRL+C`. When that happens, I cancel the global `context`.
-  The system captures `SIGINT/SIGTERM`.
-  - Stops the scheduler.
-  - Closes channels.
-  - Waits for all workers to finish their active tasks (`sync.WaitGroup`) before exiting.
-- **WaitGroups**: I track every single active goroutine (workers and scheduler). I don't let the main process exit until every worker has finished its current job (`wg.Wait()`).
-- **Worker Pool**: I spin up a fixed number of workers (currently 5) to handle jobs in parallel.
+- **Graceful Shutdown**  
+  This is non-negotiable. I use `signal.Notify` to catch `SIGINT / SIGTERM`. When that happens, I cancel the global `context`.
+
+  That cancellation:
+
+  - Stops the scheduler loop
+  - Stops Redis consumers
+  - Signals all workers to stop accepting new jobs
+  - Allows in-flight jobs to finish execution
+
+- **WaitGroups**  
+  Every long-running goroutine (scheduler + workers) is tracked using a `sync.WaitGroup`.  
+  The main process does **not exit** until:
+
+  - all workers finish their current job
+  - the scheduler shuts down cleanly
+
+- **Worker Pool**  
+  A fixed pool of workers (currently 5) is spawned at startup. Workers are long-lived and block on channels instead of polling.
+
+---
 
 ### 2. The Scheduler (`internal/scheduler`)
 
-This is the heart of the queueing logic.
+This is the **control plane** of Tickr. It owns time, orchestration, and recovery.
 
-- **Immediate Jobs**: Go straight to a Redis List (`tickr:queue:ready`).
-- **Delayed Jobs** (`scheduler.go`): these go to a Redis Sorted Set (`tickr:queue:waiting`) with the timestamp as the score.
-- **Intelligent Polling**: Instead of a dumb 1 second loop, the scheduler uses `nextExecutionTime` to sleep exactly until the next job is due.
-- **Real-Time Wakeup**: Implemented a notification channel (`wqCh`) so that if a new delayed job is added, the scheduler wakes up immediately to recalculate its sleep time.
+- **Durable Source of Truth**  
+  MySQL is the source of truth for all jobs and their state. Redis is treated as a **disposable scheduling index**, not trusted state.
 
-### 3. The Workers (`internal/worker`)
+- **Immediate Jobs**  
+  Jobs ready for execution live in a Redis List (`tickr:queue:ready`) and are consumed using a single blocking `BRPOP`.
 
-- **The Loop**: Each worker runs an infinite loop. They use scheduler job channel to block the loop and wait until either context is cancelled or they receive a job.
-- **The Executor**: Once a worker gets a job, it hands it off to the `Executor`.
-- **Executor Pattern** (`executor.go`): This is a switch statement that routes the job to the right function based on its type (`email`, `report`). It handles the JSON unmarshalling for the specific payload.
+- **Delayed Jobs (Waiting Queue)**  
+  Delayed jobs live in a Redis Sorted Set (`tickr:queue:waiting`) with `executeAt` as the score.
 
-### 4. High-Concurrency Worker Pool
+- **Event-Driven Scheduling (No Polling Hot Path)**  
+  Instead of polling every second, the scheduler:
 
-- **Pipeline Pattern**: Separated the "Fetcher" (`PopReadyQueue` goroutine) from the "Processors" (Workers).
-- **Go Channels**: Jobs flow from Redis -> Fetcher -> `JobCh` -> Workers. This enables idiomatic Go concurrency using `select`.
+  - Computes the next execution time (`nextExecutionTime`)
+  - Sleeps exactly until that moment using a timer
+  - Wakes up immediately if a new earlier job arrives via a notification channel (`wqCh`)
 
-### 5. The API (`internal/api`)
+- **Redis Failure Handling**  
+  Redis is assumed to fail.
 
-- **Endpoints**:
+  - If Redis goes down, the scheduler blocks safely and waits for reconnection
+  - Once Redis is back, the scheduler re-evaluates time and flushes overdue jobs
+  - If Redis state is lost, the scheduler **rebuilds Redis from MySQL**
 
-  - `POST /api/v1/jobs`: Accepts a JSON payload. It generates a UUID for the job and pushes it to the scheduler.
-  - `GET /api/v1/health`: Simple health check.
+- **Time Discontinuity Handling**  
+  Jobs whose scheduled time passed while Redis or the scheduler was down are detected and executed immediately after recovery.
 
-## Design Decisions
+---
 
-1.  **Why Redis?**: It's fast and atomic. `BRPop` gives us reliable queue semantics without complex locking.
-2.  **Why UUIDs in API?**: The frontend shouldn't trust the client for IDs. We generate them on the server to ensure uniqueness.
-3.  **Why Sorted Sets for Delays?**: It's the standard pattern for delayed queues. We can efficiently query "give me everything with score < now".
-4.  **Graceful Shutdown**: I wanted to ensure zero data loss. If you deploy a new version, the old one finishes its active jobs before dying.
+### 3. Redis Fetcher (`PopReadyQueue`)
+
+This runs as a **single goroutine**, separate from workers.
+
+```go
+BRPOP tickr:queue:ready
+```
+
+- Blocks until a job is available
+- Unmarshals the Redis payload
+- Pushes the job into the internal JobCh
+- Handles Redis disconnects gracefully:
+- waits for Redis to come back
+- triggers recovery if state was lost
+
+This keeps Redis consumption centralized and avoids multiple workers competing over Redis.
+
+---
+
+### 4. The Workers (internal/worker)
+
+Workers are pure executors. They don’t know about Redis, scheduling, or time.
+
+- Worker Loop
+  - Blocks on JobCh
+  - Exits immediately when the global context is cancelled
+- Execution Flow
+  1. Fetch full job details from MySQL using the JobID
+  2. Mark job as executing, set worker_id, set started_at
+  3. Execute the job via the Executor
+  4. Increment attempt count
+  5. Persist final state:
+  - completed on success
+  - retrying with delayed requeue
+  - failed when max attempts are reached
+- Retries
+  - Retries are bounded by maxAttempts
+  - Retry delay increases per attempt
+  - Workers never sleep
+    — they compute executeAt and hand control back to the scheduler
+
+---
+
+### 5. The Executor (internal/worker/executor.go)
+
+This is a simple routing layer.
+
+- Uses a switch on jobType (e.g. email, report)
+- Handles job-specific JSON unmarshalling
+- Keeps workers generic and stateless
+
+---
+
+### 6. Concurrency Model
+
+- Pipeline Pattern
+- Redis Fetcher → JobCh → Workers
+- Go Channels
+- Provide backpressure naturally
+- Workers block when no jobs are available
+- Scheduler blocks when workers are busy
+
+No busy loops. No hot polling. No wasted CPU.
+
+---
+
+### Design Decisions
+
+1. **Why Redis + MySQL?**
+   MySQL is the durable source of truth. Redis is fast, atomic, and disposable. Losing Redis state is acceptable; losing MySQL state is not.
+
+2. **Why Event-Driven Scheduling?**
+   Polling wastes CPU and hides timing bugs. The scheduler wakes up exactly when needed and reacts immediately to new jobs.
+
+3. **Why Single Redis Consumer?**
+   Centralizing Redis consumption avoids race conditions and simplifies recovery logic.
+
+4. **Why Workers Don’t Sleep?**
+   Workers compute when a retry should happen, but never wait. Time belongs to the scheduler.
+
+5. **Graceful Shutdown**
+   The system guarantees zero job loss. On shutdown, in-flight jobs complete and state is persisted before exit.
+
+---
+
+Tickr v2 is designed to be correct under failure
