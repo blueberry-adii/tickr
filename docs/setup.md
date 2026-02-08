@@ -82,6 +82,20 @@ To stop and remove volumes (IMPORTANT: deletes MySQL data):
 docker compose down -v
 ```
 
+### 4. Running it without rebuilding
+
+To run the build again without rebuilding:
+
+```bash
+docker compose up
+```
+
+OR
+
+```bash
+docker compose up -d
+```
+
 ---
 
 ### Notes on Tickr v2 Architecture
