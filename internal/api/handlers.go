@@ -64,6 +64,9 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/*
+		Calculate time when job needs to be moved from waiting queue to ready queue
+	*/
 	now := time.Now()
 	scheduledAt := now.Add(time.Duration(body.Delay) * time.Second)
 
@@ -86,6 +89,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/*Create Redis Instance of Job for Redis queues*/
 	redisJob := &jobs.RedisJob{JobID: job.ID, ScheduledAt: scheduledAt}
 
 	/*
