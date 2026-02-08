@@ -69,11 +69,14 @@ func (w *Worker) Run(ctx context.Context) {
 
 			/*Create a new Executor and Execute the job assigned to this worker*/
 			exec := Executor{worker: w}
-			if err := exec.ExecuteJob(job); err != nil {
+			err = exec.ExecuteJob(job)
+			jobCtx := context.Background()
+
+			if err != nil {
 				log.Printf("error: %v", err.Error())
-				w.Scheduler.Repository.UpdateJobStatus(ctx, job, enums.Failed)
+				w.Scheduler.Repository.UpdateJobStatus(jobCtx, job, enums.Failed)
 			} else {
-				w.Scheduler.Repository.UpdateJobStatus(ctx, job, enums.Completed)
+				w.Scheduler.Repository.UpdateJobStatus(jobCtx, job, enums.Completed)
 			}
 		}
 	}
