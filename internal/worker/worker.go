@@ -93,7 +93,7 @@ func (w *Worker) Run(ctx context.Context) {
 					job.Status = enums.Retrying
 					w.Scheduler.Repository.UpdateJob(jobCtx, job)
 					delay := end.Add(time.Second * 10 * time.Duration(job.Attempt))
-					w.Scheduler.PushWaitingQueue(jobCtx, &jobs.RedisJob{JobID: job.ID}, delay)
+					w.Scheduler.PushWaitingQueue(jobCtx, &jobs.RedisJob{JobID: job.ID, ScheduledAt: delay})
 				} else {
 					log.Printf("failed: attempt %d of job %d failed with max 3 attempts", job.Attempt, job.ID)
 					job.Status = enums.Failed

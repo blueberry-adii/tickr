@@ -214,7 +214,7 @@ func (s *Scheduler) PopReadyQueue(ctx context.Context) {
 /*
 Method to push a job in waiting queue, with duration the job stays in waiting queue
 */
-func (s *Scheduler) PushWaitingQueue(ctx context.Context, job *jobs.RedisJob, executeAt time.Time) error {
+func (s *Scheduler) PushWaitingQueue(ctx context.Context, job *jobs.RedisJob) error {
 	data, err := json.Marshal(job)
 	if err != nil {
 		return err
@@ -222,7 +222,7 @@ func (s *Scheduler) PushWaitingQueue(ctx context.Context, job *jobs.RedisJob, ex
 
 	/*Adds the job into Redis ZSet sorted according to their time of execution*/
 	err = s.redis.client.ZAdd(ctx, "tickr:queue:waiting", &redis.Z{
-		Score:  float64(executeAt.Unix()),
+		Score:  float64(job.ScheduledAt.Unix()),
 		Member: data,
 	}).Err()
 
@@ -308,8 +308,7 @@ func (s *Scheduler) recoverFromMySQL(ctx context.Context) {
 	}
 
 	for _, job := range jobs {
-		executeAt := job.ScheduledAt
-		s.PushWaitingQueue(ctx, &job, executeAt)
+		s.PushWaitingQueue(ctx, &job)
 	}
 
 	s.redis.client.Set(ctx, "tickr:redis:epoch", time.Now().Unix(), 0)
