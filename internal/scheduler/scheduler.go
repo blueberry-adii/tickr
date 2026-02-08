@@ -16,7 +16,9 @@ import (
 /*
 Scheduler depends on redis client,
 has a job channel to notify when a job is pushed to ready queue,
-has a waiting queue channel to notify when a new job is pushed to waiting queue
+has a waiting queue channel to notify when a new job is pushed to waiting queue,
+has a recovering field, to let other goroutines know redis is in recovering state,
+injects database repository to access DB Methods
 */
 type Scheduler struct {
 	recovering int32
@@ -47,6 +49,7 @@ and serves many purposes:
 3. Block the infinite for loop and Listen to multiple channels
 */
 func (s *Scheduler) Run(ctx context.Context) {
+	/*Checks whether Redis lost data/state, if true, runs recovery to refill Redis queues*/
 	if s.redisStateLost(ctx) {
 		log.Println("important: redis state missing, rebuilding from MySQL")
 		s.recoverFromMySQL(ctx)
@@ -173,7 +176,11 @@ func (s *Scheduler) PopReadyQueue(ctx context.Context) {
 				return
 			}
 			log.Printf("error popping from ready queue: %v", err)
+
+			/*Calls watchRedis to wait till redis reconnects*/
 			s.watchRedis(ctx)
+
+			/*Runs recovery if redis state lost*/
 			if s.redisStateLost(ctx) {
 				s.triggerRecovery()
 			}
@@ -281,7 +288,13 @@ func (s *Scheduler) PopWaitingQueue(ctx context.Context) ([]*jobs.RedisJob, erro
 	return readyJobs, nil
 }
 
+/*Function which checks whether redis lost state/data after crash*/
 func (s *Scheduler) redisStateLost(ctx context.Context) bool {
+	/*
+		tickr:redis:epoch is a key which is assigned to redis in the start of the program,
+		if it is missing -> redis state lost,
+		return true otherwise false
+	*/
 	exists, err := s.redis.client.Exists(ctx, "tickr:redis:epoch").Result()
 	if err != nil {
 		return false
@@ -289,6 +302,10 @@ func (s *Scheduler) redisStateLost(ctx context.Context) bool {
 	return exists == 0
 }
 
+/*
+Function which sets recovering state to 1, to let other recovery functions to know
+that recovery is ongoing
+*/
 func (s *Scheduler) triggerRecovery() {
 	if atomic.CompareAndSwapInt32(&s.recovering, 0, 1) {
 		go func() {
@@ -298,6 +315,10 @@ func (s *Scheduler) triggerRecovery() {
 	}
 }
 
+/*
+Function which fetches all pending jobs from mysql and
+pushes them back onto waiting queue
+*/
 func (s *Scheduler) recoverFromMySQL(ctx context.Context) {
 	log.Println("redis state lost, rebuilding queues")
 
@@ -314,6 +335,12 @@ func (s *Scheduler) recoverFromMySQL(ctx context.Context) {
 	s.redis.client.Set(ctx, "tickr:redis:epoch", time.Now().Unix(), 0)
 }
 
+/*
+Function that constantly pings redis to check whether it's active,
+if yes, then send a signal to scheduler's wqCh to start executing recovered
+waiting queue jobs and return from this function, otherwise repeat the loop every
+second
+*/
 func (s *Scheduler) watchRedis(ctx context.Context) {
 	for {
 		if err := s.redis.client.Ping(ctx).Err(); err == nil {
