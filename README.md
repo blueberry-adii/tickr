@@ -14,7 +14,7 @@ The idea is simple:
 
 ## Architecture & Tech Stack
 
-![Architecture Diagram](./assets/diagram.svg)
+![Architecture Diagram](./assets/v2-diagram.svg)
 
 - **Language**: Go (Golang) - chosen for its amazing concurrency (`goroutines` and `channels`).
 - **Storage (Source of Truth)**: MySQL - used to store job details and states as the source of truth.
