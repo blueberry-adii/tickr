@@ -114,8 +114,8 @@ func main() {
 		1. API Health
 		2. Submitting Job/Task to the application
 	*/
-	mux.Handle("/api/v1/health/", api.Logging(handler.Health))
-	mux.Handle("/api/v1/jobs/", api.Logging(handler.SubmitJob))
+	mux.Handle("/api/v2/health", api.Logging(handler.Health))
+	mux.Handle("/api/v2/jobs", api.Logging(handler.SubmitJob))
 
 	/*
 		Configure the server to listen on port 8080

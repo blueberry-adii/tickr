@@ -2,7 +2,7 @@
 
 As of now there are only two API endpoints for this application
 
-### **GET** /api/v1/health/
+### **GET** /api/v2/health/
 
 This endpoint is a health endpoint to make sure whether the server is running.
 If it returns http error then the server has crashed or isn't running
@@ -10,12 +10,12 @@ If it returns http error then the server has crashed or isn't running
 Example:
 
 ```bash
-curl localhost:8080/api/v1/health/
+curl localhost:8080/api/v2/health
 
 -> {"status":200,"message":"REST API Up and Working!!!","data":null,"success":true}
 ```
 
-### **POST** /api/v1/jobs
+### **POST** /api/v2/jobs/
 
 This endpoint is the essential of this application. You send a post request on this endpoint with the following fields in the request body
 
@@ -34,7 +34,7 @@ This endpoint is the essential of this application. You send a post request on t
 ## Examples:
 
 ```bash
-curl -X POST localhost:8080/api/v1/jobs/ \
+curl -X POST localhost:8080/api/v2/jobs \
 -H "Content-Type: application/json" \
 -d '{"jobType":"email", "payload":{"to":"john@gmail.com", "from":"aditya@proton.me", "body":"Email Messaging is working"}, "delay":5}'
 
@@ -44,7 +44,7 @@ curl -X POST localhost:8080/api/v1/jobs/ \
 ---
 
 ```bash
-curl -X POST localhost:8080/api/v1/jobs/ \
+curl -X POST localhost:8080/api/v2/jobs \
 -H "Content-Type: application/json" \
 -d '{"jobType":"report", "payload": {"title":"Weather Report", "body":"Weather today is Rainy", "time":10}, "delay":5}'
 
