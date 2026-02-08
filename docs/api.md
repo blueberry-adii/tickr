@@ -2,7 +2,7 @@
 
 As of now there are only two API endpoints for this application
 
-### **GET** /api/v2/health/
+### **GET** /api/v2/health
 
 This endpoint is a health endpoint to make sure whether the server is running.
 If it returns http error then the server has crashed or isn't running
@@ -15,7 +15,7 @@ curl localhost:8080/api/v2/health
 -> {"status":200,"message":"REST API Up and Working!!!","data":null,"success":true}
 ```
 
-### **POST** /api/v2/jobs/
+### **POST** /api/v2/jobs
 
 This endpoint is the essential of this application. You send a post request on this endpoint with the following fields in the request body
 
