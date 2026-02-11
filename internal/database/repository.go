@@ -111,13 +111,14 @@ func (r MySQLRepository) UpdateJob(ctx context.Context, job *jobs.Job) error {
 
 	_, err := r.db.ExecContext(
 		ctx,
-		"UPDATE jobs SET status = ?, worker_id = ?, attempt = ?, started_at = ?, finished_at = ?, last_error = ? WHERE id = ?",
+		"UPDATE jobs SET status = ?, worker_id = ?, attempt = ?, started_at = ?, finished_at = ?, last_error = ?, result = ? WHERE id = ?",
 		job.Status,
 		job.WorkerID,
 		job.Attempt,
 		job.StartedAt,
 		job.FinishedAt,
 		job.LastError,
+		job.Result,
 		job.ID,
 	)
 	if err != nil {

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     job_type VARCHAR(100) NOT NULL,
     payload JSON NOT NULL,
+    result JSON NULL,
     status VARCHAR(20) NOT NULL,
     attempt INT NOT NULL DEFAULT 0,
     max_attempts INT NOT NULL DEFAULT 3,

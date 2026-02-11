@@ -24,19 +24,17 @@ Payload is the data needed to execute the Job
 This is the structure of job to be stored in MySQL
 */
 type Job struct {
-	ID      int64           `json:"id"`
-	JobType string          `json:"jobtype"`
-	Payload json.RawMessage `json:"payload"`
-
-	Status      enums.Status `json:"status"`
-	Attempt     int          `json:"attempt"`
-	MaxAttempts int          `json:"maxAttempts"`
-
-	ScheduledAt time.Time  `json:"scheduledAt"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	StartedAt   *time.Time `json:"startedAt"`
-	FinishedAt  *time.Time `json:"finishedAt"`
-
-	LastError *string `json:"lastError"`
-	WorkerID  *int    `json:"workerID"`
+	ID          int64           `json:"id"`
+	JobType     string          `json:"jobtype"`
+	Payload     json.RawMessage `json:"payload"`
+	Result      json.RawMessage `json:"result"`
+	Status      enums.Status    `json:"status"`
+	Attempt     int             `json:"attempt"`
+	MaxAttempts int             `json:"maxAttempts"`
+	ScheduledAt time.Time       `json:"scheduledAt"`
+	CreatedAt   time.Time       `json:"createdAt"`
+	StartedAt   *time.Time      `json:"startedAt"`
+	FinishedAt  *time.Time      `json:"finishedAt"`
+	LastError   *string         `json:"lastError"`
+	WorkerID    *int            `json:"workerID"`
 }

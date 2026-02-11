@@ -3,6 +3,7 @@ package worker
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -42,7 +43,17 @@ func (e *Executor) handleEmail(job *jobs.Job) error {
 		Body string `json:"body"`
 	}
 
+	var Obj struct {
+		Data string `json:"data"`
+	}
+
+	defer func() {
+		bytes, _ := json.Marshal(Obj)
+		job.Result = bytes
+	}()
+
 	if err := json.Unmarshal([]byte(job.Payload), &email); err != nil {
+		Obj.Data = "error: invalid email"
 		log.Printf("invalid email format: %v", err)
 		return err
 	}
@@ -50,6 +61,8 @@ func (e *Executor) handleEmail(job *jobs.Job) error {
 	log.Printf("sending email from %s to %s", email.From, email.To)
 	time.Sleep(time.Second * 5)
 	log.Printf("sent email: %s", email.Body)
+	Obj.Data = fmt.Sprintf("sent Email to %v successfully", email.To)
+
 	return nil
 }
 
@@ -63,13 +76,25 @@ func (e *Executor) handleReport(job *jobs.Job) error {
 		Time  int    `json:"time"`
 	}
 
+	var Obj struct {
+		Data string `json:"data"`
+	}
+
+	defer func() {
+		bytes, _ := json.Marshal(Obj)
+		job.Result = bytes
+	}()
+
 	if err := json.Unmarshal([]byte(job.Payload), &report); err != nil {
 		log.Printf("invalid report format: %v", err)
+		Obj.Data = "error: invalid report format"
 		return err
 	}
 
 	log.Printf("scheduled report for %d seconds", report.Time)
 	time.Sleep(time.Second * time.Duration(report.Time))
 	log.Printf("Title: %s | Body: %s", report.Title, report.Body)
+
+	Obj.Data = "report successful"
 	return nil
 }
