@@ -1,10 +1,13 @@
 package worker
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/blueberry-adii/tickr/internal/jobs"
@@ -28,9 +31,76 @@ func (e *Executor) ExecuteJob(job *jobs.Job) error {
 		return e.handleEmail(job)
 	case "report":
 		return e.handleReport(job)
+	case "http":
+		return e.SendHttpRequest(job)
 	default:
 		return errors.New("unrecognized job")
 	}
+}
+
+/*
+Method to send an http request
+*/
+func (e *Executor) SendHttpRequest(job *jobs.Job) error {
+	client := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	var request struct {
+		Url     string          `json:"url"`
+		Body    json.RawMessage `json:"body"`
+		Headers json.RawMessage `json:"headers"`
+		Method  string          `json:"method"`
+	}
+
+	var Obj struct {
+		Data any `json:"data"`
+	}
+
+	defer func() {
+		bytes, _ := json.Marshal(Obj)
+		job.Result = bytes
+	}()
+
+	if err := json.Unmarshal([]byte(job.Payload), &request); err != nil {
+		Obj.Data = "error: invalid http request"
+		log.Printf("invalid http request format: %v", err)
+		return err
+	}
+
+	req, _ := http.NewRequest(request.Method, request.Url, bytes.NewBuffer(request.Body))
+
+	if len(request.Headers) > 0 {
+		var headerMap map[string]string
+
+		if err := json.Unmarshal(request.Headers, &headerMap); err != nil {
+			Obj.Data = "error: failed to parse headers"
+			return fmt.Errorf("failed to parse headers: %w", err)
+		}
+
+		for key, value := range headerMap {
+			req.Header.Set(key, value)
+		}
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		Obj.Data = err.Error()
+		log.Printf("err: %v", err.Error())
+		return err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		Obj.Data = err.Error()
+		log.Printf("err: %v", err.Error())
+		return err
+	}
+
+	Obj.Data = json.RawMessage(bodyBytes)
+
+	return nil
 }
 
 /*
