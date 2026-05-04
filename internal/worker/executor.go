@@ -129,7 +129,7 @@ func (e *Executor) handleEmail(job *jobs.Job) error {
 	}
 
 	log.Printf("sending email from %s to %s", email.From, email.To)
-	time.Sleep(time.Second * 5)
+	// time.Sleep(time.Second * 5)
 	log.Printf("sent email: %s", email.Body)
 	Obj.Data = fmt.Sprintf("sent Email to %v successfully", email.To)
 
