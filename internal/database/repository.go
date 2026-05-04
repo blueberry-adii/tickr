@@ -11,6 +11,13 @@ import (
 	"github.com/blueberry-adii/tickr/internal/jobs"
 )
 
+type Repository interface {
+	SaveJob(ctx context.Context, job jobs.Job) (int64, error)
+	GetJob(ctx context.Context, jobID int64) (*jobs.Job, error)
+	UpdateJob(ctx context.Context, job *jobs.Job) error
+	GetPendingJobs(ctx context.Context) ([]jobs.RedisJob, error)
+}
+
 /*MySQLRepository depends on database DI*/
 type MySQLRepository struct {
 	db *sql.DB

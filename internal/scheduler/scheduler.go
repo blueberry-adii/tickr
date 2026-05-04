@@ -22,7 +22,7 @@ injects database repository to access DB Methods
 */
 type Scheduler struct {
 	recovering int32
-	Repository *database.MySQLRepository
+	Repository database.Repository
 	redis      *Redis
 	JobCh      chan *jobs.RedisJob
 	wqCh       chan int
@@ -32,7 +32,7 @@ type Scheduler struct {
 Scheduler constructor, accept redis client,
 create a job channel and a wq channel
 */
-func NewScheduler(r *Redis, repo *database.MySQLRepository) *Scheduler {
+func NewScheduler(r *Redis, repo database.Repository) *Scheduler {
 	return &Scheduler{
 		Repository: repo,
 		redis:      r,
@@ -353,4 +353,20 @@ func (s *Scheduler) watchRedis(ctx context.Context) {
 		log.Printf("err: redis connection inactive!!")
 		time.Sleep(time.Second)
 	}
+}
+
+func (s *Scheduler) Jobs() <-chan *jobs.RedisJob {
+	return s.JobCh
+}
+
+func (s *Scheduler) GetJob(ctx context.Context, jobID int64) (*jobs.Job, error) {
+	return s.Repository.GetJob(ctx, jobID)
+}
+
+func (s *Scheduler) SaveJob(ctx context.Context, job jobs.Job) (int64, error) {
+	return s.Repository.SaveJob(ctx, job)
+}
+
+func (s *Scheduler) UpdateJob(ctx context.Context, job *jobs.Job) error {
+	return s.Repository.UpdateJob(ctx, job)
 }

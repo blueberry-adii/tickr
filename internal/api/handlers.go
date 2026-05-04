@@ -26,11 +26,11 @@ Handler Struct which depends on scheduler and repository
 through dependency injection
 */
 type Handler struct {
-	scheduler *scheduler.Scheduler
+	scheduler scheduler.Queue
 }
 
 /*Handler Constructor*/
-func NewHandler(s *scheduler.Scheduler) *Handler {
+func NewHandler(s scheduler.Queue) *Handler {
 	return &Handler{
 		scheduler: s,
 	}
@@ -83,7 +83,7 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 
 	/*Save Job in MySQL Database using Repository*/
 	var err error
-	job.ID, err = h.scheduler.Repository.SaveJob(r.Context(), job)
+	job.ID, err = h.scheduler.SaveJob(r.Context(), job)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

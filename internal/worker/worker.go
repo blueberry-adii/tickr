@@ -7,8 +7,19 @@ import (
 
 	"github.com/blueberry-adii/tickr/internal/enums"
 	"github.com/blueberry-adii/tickr/internal/jobs"
-	"github.com/blueberry-adii/tickr/internal/scheduler"
 )
+
+/*
+Dispatcher is the interface the worker needs from the scheduler:
+a channel to receive jobs from, DB read/write access, and retry queuing.
+Defined here so the worker package has no import dependency on scheduler.
+*/
+type Dispatcher interface {
+	Jobs() <-chan *jobs.RedisJob
+	GetJob(ctx context.Context, jobID int64) (*jobs.Job, error)
+	UpdateJob(ctx context.Context, job *jobs.Job) error
+	PushWaitingQueue(ctx context.Context, job *jobs.RedisJob) error
+}
 
 /*
 Defines Worker struct with ID
@@ -16,13 +27,13 @@ and scheduler which assigns it the jobs
 */
 type Worker struct {
 	ID        int
-	Scheduler *scheduler.Scheduler
+	Scheduler Dispatcher
 }
 
 /*
 Worker Constructor
 */
-func NewWorker(id int, s *scheduler.Scheduler) *Worker {
+func NewWorker(id int, s Dispatcher) *Worker {
 	return &Worker{
 		ID:        id,
 		Scheduler: s,
@@ -55,7 +66,7 @@ func (w *Worker) Run(ctx context.Context) {
 			when there is a new job in ready queue, job channel notifies
 			worker and this block is executed
 		*/
-		case redisJob, ok := <-w.Scheduler.JobCh:
+		case redisJob, ok := <-w.Scheduler.Jobs():
 			if !ok {
 				log.Printf("worker %d shutting down", w.ID)
 				return
@@ -63,7 +74,7 @@ func (w *Worker) Run(ctx context.Context) {
 			log.Printf("worker %v took job %v", w.ID, redisJob.JobID)
 
 			/*Get Job by ID from database*/
-			job, err := w.Scheduler.Repository.GetJob(ctx, redisJob.JobID)
+			job, err := w.Scheduler.GetJob(ctx, redisJob.JobID)
 			if err != nil {
 				log.Printf("failed to fetch job %d: %v", redisJob.JobID, err)
 				continue
@@ -79,7 +90,7 @@ func (w *Worker) Run(ctx context.Context) {
 			job.WorkerID = &w.ID
 
 			/*Update the job details into database*/
-			w.Scheduler.Repository.UpdateJob(ctx, job)
+			w.Scheduler.UpdateJob(ctx, job)
 
 			/*Create a new Executor and Execute the job assigned to this worker*/
 			exec := Executor{worker: w}
@@ -99,19 +110,19 @@ func (w *Worker) Run(ctx context.Context) {
 				if job.Attempt < job.MaxAttempts {
 					log.Printf("retry: attempt %d of job %d failed, sending back to waiting queue", job.Attempt, job.ID)
 					job.Status = enums.Retrying
-					w.Scheduler.Repository.UpdateJob(jobCtx, job)
+					w.Scheduler.UpdateJob(jobCtx, job)
 					delay := end.Add(time.Second * 10 * time.Duration(job.Attempt))
 					w.Scheduler.PushWaitingQueue(jobCtx, &jobs.RedisJob{JobID: job.ID, ScheduledAt: delay})
 				} else {
 					log.Printf("failed: attempt %d of job %d failed with max 3 attempts", job.Attempt, job.ID)
 					job.Status = enums.Failed
-					w.Scheduler.Repository.UpdateJob(jobCtx, job)
+					w.Scheduler.UpdateJob(jobCtx, job)
 				}
 			} else {
 				log.Printf("success: attempt %d of job %d was successful", job.Attempt, job.ID)
 				job.LastError = nil
 				job.Status = enums.Completed
-				w.Scheduler.Repository.UpdateJob(jobCtx, job)
+				w.Scheduler.UpdateJob(jobCtx, job)
 			}
 		}
 	}
