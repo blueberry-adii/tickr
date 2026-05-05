@@ -37,6 +37,7 @@ func (e *Executor) ExecuteJob(job *jobs.Job) error {
 	case "http":
 		return e.sendHttpRequest(job)
 	default:
+		job.Result = []byte(`unrecognized job`)
 		return errors.New("unrecognized job")
 	}
 }
@@ -63,6 +64,9 @@ func (e *Executor) sendHttpRequest(job *jobs.Job) error {
 	defer func() {
 		bytes, _ := json.Marshal(Obj)
 		job.Result = bytes
+		if bytes == nil {
+			job.Result = []byte("")
+		}
 	}()
 
 	if err := json.Unmarshal([]byte(job.Payload), &request); err != nil {
