@@ -21,6 +21,10 @@ type Dispatcher interface {
 	PushWaitingQueue(ctx context.Context, job *jobs.RedisJob) error
 }
 
+type IWorker interface {
+	Run(ctx context.Context)
+}
+
 /*
 Defines Worker struct with ID
 and scheduler which assigns it the jobs
@@ -93,7 +97,7 @@ func (w *Worker) Run(ctx context.Context) {
 			w.Scheduler.UpdateJob(ctx, job)
 
 			/*Create a new Executor and Execute the job assigned to this worker*/
-			exec := Executor{worker: w}
+			exec := NewExecutor(w)
 			err = exec.ExecuteJob(job)
 			jobCtx := context.Background()
 

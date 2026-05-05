@@ -18,7 +18,13 @@ Executor struct needs a worker assigned through
 dependency injection
 */
 type Executor struct {
-	worker *Worker
+	worker IWorker
+}
+
+func NewExecutor(worker IWorker) *Executor {
+	return &Executor{
+		worker: worker,
+	}
 }
 
 /*
