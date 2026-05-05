@@ -99,3 +99,31 @@ func TestPopWaitingQueue(t *testing.T) {
 		})
 	}
 }
+
+func TestSchedulerRecovery(t *testing.T) {
+	pendingJobs := []jobs.RedisJob{
+		{JobID: 10, ScheduledAt: time.Now().Add(time.Hour)},
+		{JobID: 11, ScheduledAt: time.Now().Add(2 * time.Hour)},
+	}
+
+	sc, mr := newTestScheduler(t, &MockRepository{
+		pending: pendingJobs,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	sc.Run(ctx)
+
+	if !mr.Exists("tickr:redis:epoch") {
+		t.Errorf("expected epoch key to be set after recovery, but it was missing")
+	}
+
+	members, err := mr.ZMembers("tickr:queue:waiting")
+	if err != nil {
+		t.Fatalf("unexpected error reading waiting queue: %v", err)
+	}
+
+	if len(members) != len(pendingJobs) {
+		t.Errorf("expected %d jobs in waiting queue, got %d", len(pendingJobs), len(members))
+	}
+}
