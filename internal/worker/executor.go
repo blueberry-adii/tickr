@@ -38,7 +38,7 @@ func (e *Executor) ExecuteJob(job *jobs.Job) error {
 	case "report":
 		return e.handleReport(job)
 	case "http":
-		return e.SendHttpRequest(job)
+		return e.sendHttpRequest(job)
 	default:
 		return errors.New("unrecognized job")
 	}
@@ -47,7 +47,7 @@ func (e *Executor) ExecuteJob(job *jobs.Job) error {
 /*
 Method to send an http request
 */
-func (e *Executor) SendHttpRequest(job *jobs.Job) error {
+func (e *Executor) sendHttpRequest(job *jobs.Job) error {
 	client := &http.Client{
 		Timeout: time.Second * 10,
 	}
