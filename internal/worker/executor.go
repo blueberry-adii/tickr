@@ -98,6 +98,12 @@ func (e *Executor) sendHttpRequest(job *jobs.Job) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode >= 400 {
+		err := fmt.Errorf("request failed with status %d", resp.StatusCode)
+		Obj.Data = err.Error()
+		return err
+	}
+
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		Obj.Data = err.Error()
