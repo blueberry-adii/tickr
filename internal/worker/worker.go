@@ -31,7 +31,7 @@ type Worker struct {
 }
 
 /*
-Worker Constructor
+Returns a new Worker instance
 */
 func NewWorker(id int, s Dispatcher) *Worker {
 	return &Worker{
@@ -54,18 +54,10 @@ func (w *Worker) Run(ctx context.Context) {
 	for {
 		log.Printf("worker %v idle", w.ID)
 		select {
-		/*
-			Executes when the main context is cancelled
-			to shutdown the worker and return from run
-		*/
 		case <-ctx.Done():
 			log.Printf("worker %d shutting down", w.ID)
 			return
-		/*
-			waits for a signal from job channel in scheduler.
-			when there is a new job in ready queue, job channel notifies
-			worker and this block is executed
-		*/
+
 		case redisJob, ok := <-w.Scheduler.Jobs():
 			if !ok {
 				log.Printf("worker %d shutting down", w.ID)
@@ -73,35 +65,28 @@ func (w *Worker) Run(ctx context.Context) {
 			}
 			log.Printf("worker %v took job %v", w.ID, redisJob.JobID)
 
-			/*Get Job by ID from database*/
 			job, err := w.Scheduler.GetJob(ctx, redisJob.JobID)
 			if err != nil {
 				log.Printf("failed to fetch job %d: %v", redisJob.JobID, err)
 				continue
 			}
 
-			/*Time at which job starts*/
 			now := time.Now()
 			job.StartedAt = &now
 			job.FinishedAt = nil
 
-			/*Set Job Status to executing and set worker ID to worker that took the job*/
 			job.Status = enums.Executing
 			job.WorkerID = &w.ID
 
-			/*Update the job details into database*/
 			w.Scheduler.UpdateJob(ctx, job)
 
-			/*Create a new Executor and Execute the job assigned to this worker*/
 			exec := NewExecutor()
 			err = exec.ExecuteJob(job)
 			jobCtx := context.Background()
 
-			/*time at which job finishes execution*/
 			end := time.Now()
 			job.FinishedAt = &end
 
-			/*Increment job attempt by 1*/
 			job.Attempt = job.Attempt + 1
 			if err != nil {
 				log.Printf("error: %v", err.Error())

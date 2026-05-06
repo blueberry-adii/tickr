@@ -11,8 +11,7 @@ import (
 )
 
 /*
-response struct: HTTP Response must always be
-returned in this format
+HTTP Response is always returned in this structure
 */
 type response struct {
 	Status  int    `json:"status"`
@@ -22,21 +21,24 @@ type response struct {
 }
 
 /*
-Handler Struct which depends on scheduler and repository
-through dependency injection
+Handler Struct responsible for handling API Requests
 */
 type Handler struct {
 	scheduler scheduler.Queue
 }
 
-/*Handler Constructor*/
+/*
+Returns a new instance of Handler
+*/
 func NewHandler(s scheduler.Queue) *Handler {
 	return &Handler{
 		scheduler: s,
 	}
 }
 
-/*API Health Endpoint Handler*/
+/*
+Returns Api Health status
+*/
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
@@ -49,28 +51,27 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-/*API Endpoint to submit jobs*/
+/*
+Takes job from http request,
+calculates time when job needs to be moved from waiting queue to ready queue,
+creates a New Job with the given data from request body, saves job into Database
+pushes the job onto waiting queue if delayed otherwise ready queue
+*/
 func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
-	/*http request body struct*/
 	var body struct {
 		JobType string          `json:"jobtype"`
 		Payload json.RawMessage `json:"payload"`
 		Delay   int             `json:"delay"`
 	}
 
-	/*Decode JSON Req Body into variable body*/
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid Body Format", http.StatusBadRequest)
 		return
 	}
 
-	/*
-		Calculate time when job needs to be moved from waiting queue to ready queue
-	*/
 	now := time.Now()
 	scheduledAt := now.Add(time.Duration(body.Delay) * time.Second)
 
-	/*Create a New Job with the given data from request body*/
 	job := jobs.Job{
 		JobType:     body.JobType,
 		Payload:     body.Payload,
@@ -81,7 +82,6 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		ScheduledAt: scheduledAt,
 	}
 
-	/*Save Job in MySQL Database using Repository*/
 	var err error
 	job.ID, err = h.scheduler.SaveJob(r.Context(), job)
 	if err != nil {
@@ -89,24 +89,14 @@ func (h *Handler) SubmitJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/*Create Redis Instance of Job for Redis queues*/
 	redisJob := &jobs.RedisJob{JobID: job.ID, ScheduledAt: scheduledAt}
 
-	/*
-		If job is scheduled/given delay, push the job into waiting queue,
-		otherwise push into ready queue
-	*/
 	if body.Delay > 0 {
 		h.scheduler.PushWaitingQueue(r.Context(), redisJob)
 	} else {
 		h.scheduler.PushReadyQueue(r.Context(), redisJob)
 	}
 
-	/*
-		Set response content type into application json
-		response status code - 200 (OK)
-		encode Go struct and send response in json format
-	*/
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response{

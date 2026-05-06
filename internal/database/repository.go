@@ -18,12 +18,10 @@ type Repository interface {
 	GetPendingJobs(ctx context.Context) ([]jobs.RedisJob, error)
 }
 
-/*MySQLRepository depends on database DI*/
 type MySQLRepository struct {
 	db *sql.DB
 }
 
-/*MySQLRepository constructor*/
 func NewMySQLRepository(db *sql.DB) *MySQLRepository {
 	return &MySQLRepository{
 		db,
@@ -31,8 +29,8 @@ func NewMySQLRepository(db *sql.DB) *MySQLRepository {
 }
 
 /*
-Save Job Method to save the job in database and
-return job ID
+Saves the job in database and
+returns job ID
 */
 func (r MySQLRepository) SaveJob(ctx context.Context, job jobs.Job) (int64, error) {
 	res, err := r.db.ExecContext(
@@ -55,7 +53,7 @@ func (r MySQLRepository) SaveJob(ctx context.Context, job jobs.Job) (int64, erro
 }
 
 /*
-Get Job Method to get job by job ID from database
+Gets job by job ID from database
 */
 func (r MySQLRepository) GetJob(ctx context.Context, jobID int64) (*jobs.Job, error) {
 	row := r.db.QueryRowContext(
@@ -108,7 +106,7 @@ func (r MySQLRepository) GetJob(ctx context.Context, jobID int64) (*jobs.Job, er
 }
 
 /*
-Update job method to update job by ID in the database
+Updates job by ID in the database
 */
 func (r MySQLRepository) UpdateJob(ctx context.Context, job *jobs.Job) error {
 	/*if job isnt in executing status, clear worker and set it to nil in job instance*/
@@ -136,7 +134,7 @@ func (r MySQLRepository) UpdateJob(ctx context.Context, job *jobs.Job) error {
 }
 
 /*
-Method to get the list of pending jobs including jobs which are in retrying state
+Gets the list of pending jobs including jobs which are in retrying state
 */
 func (r MySQLRepository) GetPendingJobs(ctx context.Context) ([]jobs.RedisJob, error) {
 	rows, err := r.db.QueryContext(

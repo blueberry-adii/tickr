@@ -8,8 +8,7 @@ import (
 )
 
 /*
-Holds JobID and ScheduledAt of the Job field
-This is the structure of job to be stored in redis queues
+Structure of job to be stored in redis queues
 */
 type RedisJob struct {
 	JobID       int64     `json:"job_id"`
@@ -17,11 +16,7 @@ type RedisJob struct {
 }
 
 /*
-Job struct defines what fields each Job
-must have
-Payload is the data needed to execute the Job
-
-This is the structure of job to be stored in MySQL
+Structure of job to be stored in MySQL
 */
 type Job struct {
 	ID          int64           `json:"id"`

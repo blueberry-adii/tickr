@@ -13,10 +13,6 @@ import (
 	"github.com/blueberry-adii/tickr/internal/jobs"
 )
 
-/*
-Executor struct needs a worker assigned through
-dependency injection
-*/
 type Executor struct {
 }
 
@@ -25,7 +21,7 @@ func NewExecutor() *Executor {
 }
 
 /*
-ExecuteJob is a method which runs switch case conditions
+runs switch case conditions
 to decide which job handler to run based on job type
 */
 func (e *Executor) ExecuteJob(job *jobs.Job) error {
@@ -43,7 +39,7 @@ func (e *Executor) ExecuteJob(job *jobs.Job) error {
 }
 
 /*
-Method to send an http request
+Sends an http request
 */
 func (e *Executor) sendHttpRequest(job *jobs.Job) error {
 	client := &http.Client{
@@ -117,7 +113,7 @@ func (e *Executor) sendHttpRequest(job *jobs.Job) error {
 }
 
 /*
-Method to simulate email sending
+simulates email sending
 */
 func (e *Executor) handleEmail(job *jobs.Job) error {
 	var email struct {
@@ -150,7 +146,7 @@ func (e *Executor) handleEmail(job *jobs.Job) error {
 }
 
 /*
-Method to simulate report handling
+simulates report handling
 */
 func (e *Executor) handleReport(job *jobs.Job) error {
 	var report struct {
