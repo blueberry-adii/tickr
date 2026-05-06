@@ -13,13 +13,6 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-/*
-Scheduler depends on redis client,
-has a job channel to notify when a job is pushed to ready queue,
-has a waiting queue channel to notify when a new job is pushed to waiting queue,
-has a recovering field, to let other goroutines know redis is in recovering state,
-injects database repository to access DB Methods
-*/
 type Scheduler struct {
 	recovering int32
 	Repository database.Repository
@@ -28,9 +21,6 @@ type Scheduler struct {
 	wqCh       chan int
 }
 
-/*
-Returns a new scheduler instance
-*/
 func NewScheduler(r *Redis, repo database.Repository) *Scheduler {
 	return &Scheduler{
 		Repository: repo,
@@ -41,17 +31,11 @@ func NewScheduler(r *Redis, repo database.Repository) *Scheduler {
 }
 
 /*
-Run is a scheduler method which runs an infinite loop
-and serves many purposes:*/ /*
-1. closes all the scheduler channels when scheduler dies*/ /*
-2. run PopReadyQueue method as a goroutine*/ /*
-3. Block the infinite for loop and Listen to multiple channels*/ /*
-- Checks whether Redis lost data/state, if true, runs recovery to refill Redis queues */ /*
-- Calculate the time when the job with least delay
-needs to be moved from waiting queue to ready queue, and Calculates the waiting time till nextExec
+Run is a scheduler method which runs an infinite loop and serves many purposes:
+Checks whether Redis lost data/state, if true, runs recovery to refill Redis queues and Calculate the time when
+the job with least delay needs to be moved from waiting queue to ready queue, and Calculates the waiting time till nextExec
 */
 func (s *Scheduler) Run(ctx context.Context) {
-	/**/
 	if s.redisStateLost(ctx) {
 		log.Println("important: redis state missing, rebuilding from MySQL")
 		s.recoverFromMySQL(ctx)

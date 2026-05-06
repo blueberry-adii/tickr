@@ -21,18 +21,11 @@ type Dispatcher interface {
 	PushWaitingQueue(ctx context.Context, job *jobs.RedisJob) error
 }
 
-/*
-Defines Worker struct with ID
-and scheduler which assigns it the jobs
-*/
 type Worker struct {
 	ID        int
 	Scheduler Dispatcher
 }
 
-/*
-Returns a new Worker instance
-*/
 func NewWorker(id int, s Dispatcher) *Worker {
 	return &Worker{
 		ID:        id,
@@ -44,7 +37,6 @@ func NewWorker(id int, s Dispatcher) *Worker {
 The Worker Run method is an infinite loop
 which uses select case statements to block execution inside the loop
 this avoids `polling and constantly running the loop to check for jobs`
-and saves resources
 
 It waits on multiple (2) channels, and when either channel provides a signal,
 the block is executed and worker moves onto next iteration and blocks again
