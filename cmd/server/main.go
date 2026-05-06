@@ -48,6 +48,13 @@ func main() {
 	dbName := os.Getenv("DB_NAME")
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 
+	if dbPort == 0 {
+		log.Fatal("DB_PORT env var is required")
+	}
+	if port == 0 {
+		log.Fatal("PORT env var is required")
+	}
+
 	cfg := database.Config{
 		User:     dbUser,
 		Password: dbPass,
