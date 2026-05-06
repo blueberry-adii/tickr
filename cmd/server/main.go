@@ -47,6 +47,7 @@ func main() {
 	dbPort, _ := strconv.Atoi(os.Getenv("DB_PORT"))
 	dbName := os.Getenv("DB_NAME")
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
+	redisAddr := os.Getenv("REDIS_ADDR")
 
 	if dbPort == 0 {
 		log.Fatal("DB_PORT env var is required")
@@ -71,7 +72,7 @@ func main() {
 	repository := database.NewMySQLRepository(db)
 	mux := http.NewServeMux()
 
-	redis := scheduler.NewRedis("redis:6379")
+	redis := scheduler.NewRedis(redisAddr)
 	scheduler := scheduler.NewScheduler(redis, repository)
 	handler := api.NewHandler(scheduler)
 
