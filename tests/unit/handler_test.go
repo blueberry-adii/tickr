@@ -75,6 +75,7 @@ func TestSubmitJobHandler(t *testing.T) {
 			s := &MockScheduler{}
 			handler := api.NewHandler(s)
 			req := httptest.NewRequest(http.MethodPost, "/api/v2/jobs", strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
 
 			rr := httptest.NewRecorder()
 
@@ -87,11 +88,11 @@ func TestSubmitJobHandler(t *testing.T) {
 			}
 
 			if len(s.readyQueue) != tt.expectedReadyLen {
-				t.Errorf("expected 1 job in ready queue, got %d", len(s.readyQueue))
+				t.Errorf("expected %d job in ready queue, got %d", tt.expectedReadyLen, len(s.readyQueue))
 			}
 
 			if len(s.waitingQueue) != tt.expectedWaitingLen {
-				t.Errorf("expected 0 job in waiting queue, got %d", len(s.waitingQueue))
+				t.Errorf("expected %d job in waiting queue, got %d", tt.expectedWaitingLen, len(s.waitingQueue))
 			}
 		})
 	}
