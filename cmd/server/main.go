@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -45,13 +47,20 @@ func main() {
 		cancel()
 	}()
 
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASS")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort, _ := strconv.Atoi(os.Getenv("DB_PORT"))
+	dbName := os.Getenv("DB_NAME")
+	port, _ := strconv.Atoi(os.Getenv("PORT"))
+
 	/*Database configuration and connection*/
 	cfg := database.Config{
-		User:     "root",
-		Password: "pass",
-		Host:     "mysql",
-		Port:     3306,
-		Database: "tickr",
+		User:     dbUser,
+		Password: dbPass,
+		Host:     dbHost,
+		Port:     dbPort,
+		Database: dbName,
 	}
 	db, err := database.ConnectDB(cfg)
 	if err != nil {
@@ -114,15 +123,15 @@ func main() {
 		1. API Health
 		2. Submitting Job/Task to the application
 	*/
-	mux.Handle("/api/v2/health", api.Logging(handler.Health))
-	mux.Handle("/api/v2/jobs", api.Logging(handler.SubmitJob))
+	mux.Handle("GET /api/v2/health", api.Logging(handler.Health))
+	mux.Handle("POST /api/v2/jobs", api.Logging(handler.SubmitJob))
 
 	/*
 		Configure the server to listen on port 8080
 		and define the handler as the mux created above
 	*/
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
 
@@ -132,7 +141,7 @@ func main() {
 		through interrupt signal
 	*/
 	go func() {
-		log.Println("listening on Port 8080")
+		log.Printf("listening on Port %d", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server error: %v", err)
 		}
